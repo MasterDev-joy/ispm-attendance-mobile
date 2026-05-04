@@ -1,4 +1,6 @@
 // lib/features/auth/presentation/pages/change_password_page.dart
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../domain/entities/user.dart';
@@ -6,6 +8,12 @@ import '../blocs/auth_bloc.dart';
 import '../blocs/auth_event.dart';
 import '../blocs/auth_state.dart';
 import '../../../../core/theme/app_theme.dart';
+
+// Importation des widgets réutilisables
+import '../../../../core/presentation/widgets/ispm_button.dart';
+import '../../../../core/presentation/widgets/ispm_text_field.dart';
+import '../../../../core/presentation/widgets/ispm_mesh_grid.dart';
+import '../../../../core/presentation/widgets/ispm_glow_blob.dart';
 
 class ChangePasswordPage extends StatefulWidget {
   final User user;
@@ -15,13 +23,59 @@ class ChangePasswordPage extends StatefulWidget {
   State<ChangePasswordPage> createState() => _ChangePasswordPageState();
 }
 
-class _ChangePasswordPageState extends State<ChangePasswordPage> {
+class _ChangePasswordPageState extends State<ChangePasswordPage>
+    with SingleTickerProviderStateMixin {
   final _formKey = GlobalKey<FormState>();
   final _passwordController = TextEditingController();
   final _confirmController = TextEditingController();
+
   bool _obscurePassword = true;
   bool _obscureConfirm = true;
 
+  bool _showNewPassWordError = false;
+  bool _showNewPasswordConfirmationError = false;
+  Timer? _errorTimer;
+  static const _kErrorDuration = Duration(seconds: 3);
+
+  late final AnimationController _animController;
+
+  @override
+  void initState() {
+    super.initState();
+    _animController = AnimationController(
+      duration: const Duration(milliseconds: 900),
+      vsync: this,
+    )..forward();
+
+    // Pour mettre à jour l'indicateur de force en temps réel
+    _passwordController.addListener(() => setState(() {}));
+  }
+
+  @override
+  void dispose() {
+    _passwordController.dispose();
+    _confirmController.dispose();
+    _animController.dispose();
+    super.dispose();
+  }
+
+  void _triggerErrors() {
+    _errorTimer?.cancel();
+    setState(() {
+      _showNewPassWordError = _passwordController.text.trim().isEmpty;
+      _showNewPasswordConfirmationError = _confirmController.text.trim().isEmpty;
+    });
+    _errorTimer = Timer(_kErrorDuration, () {
+      if (mounted) {
+        setState(() {
+          _showNewPassWordError = false;
+          _showNewPasswordConfirmationError = false;
+        });
+      }
+    });
+  }
+
+  // ── Logique de force du mot de passe ──
   int get _strength {
     final v = _passwordController.text;
     if (v.length < 6) return 0;
@@ -34,35 +88,40 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
   }
 
   Color get _strengthColor {
-    switch (_strength) {
-      case 0:
-      case 1:
-        return ISPMColors.error;
-      case 2:
-      case 3:
-        return ISPMColors.warning;
-      default:
-        return ISPMColors.green;
-    }
+    if (_strength <= 1) return ISPMColors.error;
+    if (_strength <= 3) return ISPMColors.warning;
+    return ISPMColors.green;
   }
 
   String get _strengthLabel {
-    switch (_strength) {
-      case 0:
-      case 1:
-        return 'Trop court';
-      case 2:
-        return 'Faible';
-      case 3:
-        return 'Moyen';
-      case 4:
-        return 'Fort';
-      default:
-        return 'Très fort';
-    }
+    if (_strength <= 1) return 'Trop court';
+    if (_strength == 2) return 'Faible';
+    if (_strength == 3) return 'Moyen';
+    if (_strength == 4) return 'Fort';
+    return 'Très fort';
+  }
+
+  Widget _staggered(int index, Widget child) {
+    return FadeTransition(
+      opacity: CurvedAnimation(
+        parent: _animController,
+        curve: Interval((0.1 * index).clamp(0.0, 1.0), 1.0, curve: Curves.easeOut),
+      ),
+      child: SlideTransition(
+        position: Tween<Offset>(
+          begin: const Offset(0, 0.2),
+          end: Offset.zero,
+        ).animate(CurvedAnimation(
+          parent: _animController,
+          curve: Interval((0.1 * index).clamp(0.0, 1.0), 1.0, curve: Curves.easeOutCubic),
+        )),
+        child: child,
+      ),
+    );
   }
 
   void _onSubmit() {
+    _triggerErrors();
     if (_formKey.currentState!.validate()) {
       context.read<AuthBloc>().add(
         ChangePasswordRequestedEvent(
@@ -76,7 +135,7 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF7F8F6),
+      backgroundColor: ISPMColors.black, // Utilisation de la couleur du thème[cite: 1]
       body: BlocConsumer<AuthBloc, AuthState>(
         listener: (context, state) {
           if (state is AuthError) {
@@ -84,6 +143,8 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
               SnackBar(
                 content: Text(state.message),
                 backgroundColor: ISPMColors.error,
+                behavior: SnackBarBehavior.floating,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
               ),
             );
           } else if (state is AuthAuthenticated) {
@@ -91,224 +152,109 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
           }
         },
         builder: (context, state) {
-          return SafeArea(
-            child: SingleChildScrollView(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  // ── En-tête coloré ──
-                  Container(
-                    color: ISPMColors.black,
-                    padding: const EdgeInsets.fromLTRB(24, 24, 24, 36),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Container(
-                          width: 52,
-                          height: 52,
-                          decoration: BoxDecoration(
-                            color: ISPMColors.green.withOpacity(0.15),
-                            borderRadius: BorderRadius.circular(16),
-                            border: Border.all(
-                                color: ISPMColors.green.withOpacity(0.3)),
-                          ),
-                          child: const Icon(
-                            Icons.security_rounded,
-                            color: ISPMColors.green,
-                            size: 26,
-                          ),
-                        ),
-                        const SizedBox(height: 20),
-                        const Text(
-                          'Première connexion',
-                          style: TextStyle(
-                            fontFamily: 'Poppins',
-                            fontSize: 26,
-                            fontWeight: FontWeight.w700,
-                            color: ISPMColors.white,
-                            letterSpacing: -0.3,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          'Bonjour ${widget.user.name}, pour sécuriser votre compte, '
-                              'veuillez définir un mot de passe personnel.',
-                          style: TextStyle(
-                            fontFamily: 'Poppins',
-                            fontSize: 13,
-                            color: ISPMColors.white.withOpacity(0.5),
-                            height: 1.6,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
+          return Stack(
+            children: [
+              // ── FOND RÉUTILISABLE ──[cite: 1, 2]
+              const Positioned.fill(child: _PageBackground()),
 
-                  // ── Formulaire ──
-                  Container(
-                    padding: const EdgeInsets.fromLTRB(24, 32, 24, 40),
-                    child: Form(
-                      key: _formKey,
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          // Nouveau mot de passe
-                          _FieldLabel(label: 'Nouveau mot de passe'),
-                          const SizedBox(height: 8),
-                          TextFormField(
-                            controller: _passwordController,
-                            obscureText: _obscurePassword,
-                            onChanged: (_) => setState(() {}),
-                            decoration: InputDecoration(
-                              hintText: 'Min. 6 caractères',
-                              hintStyle: TextStyle(
-                                  color: ISPMColors.grey400, fontSize: 14),
-                              prefixIcon: const Icon(
-                                  Icons.lock_outline_rounded,
-                                  size: 20,
-                                  color: ISPMColors.grey400),
-                              suffixIcon: GestureDetector(
-                                onTap: () => setState(
-                                        () => _obscurePassword = !_obscurePassword),
-                                child: Icon(
-                                  _obscurePassword
-                                      ? Icons.visibility_off_outlined
-                                      : Icons.visibility_outlined,
-                                  size: 20,
-                                  color: ISPMColors.grey400,
-                                ),
-                              ),
-                            ),
-                            validator: (v) => v == null || v.length < 6
-                                ? 'Minimum 6 caractères requis'
-                                : null,
-                          ),
-                          // Indicateur de force
-                          if (_passwordController.text.isNotEmpty) ...[
-                            const SizedBox(height: 10),
-                            Row(
-                              children: [
-                                Expanded(
-                                  child: ClipRRect(
-                                    borderRadius: BorderRadius.circular(4),
-                                    child: LinearProgressIndicator(
-                                      value: _strength / 5,
-                                      backgroundColor:
-                                      ISPMColors.grey200,
-                                      color: _strengthColor,
-                                      minHeight: 4,
+              SafeArea(
+                child: SingleChildScrollView(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      _staggered(0, const _PageHeader()),
+
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(24, 28, 24, 40),
+                        child: Form(
+                          key: _formKey,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              // Champ Nouveau mot de passe[cite: 4]
+                              _staggered(
+                                1,
+                                IspmTextField(
+                                  controller: _passwordController,
+                                  label: 'Nouveau mot de passe',
+                                  hint: 'Min. 6 caractères',
+                                  prefixIcon: Icons.lock_outline_rounded,
+                                  isPassword: _obscurePassword,
+                                  showError: _showNewPassWordError,
+                                  errorText: 'Nouveau mot de passe requis',
+                                  suffixIcon: IconButton(
+                                    icon: Icon(
+                                      _obscurePassword ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+                                      color: Colors.white.withOpacity(0.3),
+                                      size: 18,
                                     ),
+                                    onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
                                   ),
+                                  validator: (v) => v == null || v.length < 6 ? 'Minimum 6 caractères requis' : null,
                                 ),
-                                const SizedBox(width: 10),
-                                Text(
-                                  _strengthLabel,
-                                  style: TextStyle(
-                                    fontFamily: 'Poppins',
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.w600,
+                              ),
+
+                              // Indicateur de force
+                              if (_passwordController.text.isNotEmpty)
+                                _staggered(
+                                  2,
+                                  _StrengthIndicator(
+                                    strength: _strength,
                                     color: _strengthColor,
+                                    label: _strengthLabel,
                                   ),
                                 ),
-                              ],
-                            ),
-                          ],
-                          const SizedBox(height: 20),
 
-                          // Confirmation
-                          _FieldLabel(label: 'Confirmer le mot de passe'),
-                          const SizedBox(height: 8),
-                          TextFormField(
-                            controller: _confirmController,
-                            obscureText: _obscureConfirm,
-                            decoration: InputDecoration(
-                              hintText: 'Répétez le mot de passe',
-                              hintStyle: TextStyle(
-                                  color: ISPMColors.grey400, fontSize: 14),
-                              prefixIcon: const Icon(
-                                  Icons.lock_outline_rounded,
-                                  size: 20,
-                                  color: ISPMColors.grey400),
-                              suffixIcon: GestureDetector(
-                                onTap: () => setState(
-                                        () => _obscureConfirm = !_obscureConfirm),
-                                child: Icon(
-                                  _obscureConfirm
-                                      ? Icons.visibility_off_outlined
-                                      : Icons.visibility_outlined,
-                                  size: 20,
-                                  color: ISPMColors.grey400,
-                                ),
-                              ),
-                            ),
-                            validator: (v) =>
-                            v != _passwordController.text
-                                ? 'Les mots de passe ne correspondent pas'
-                                : null,
-                          ),
-                          const SizedBox(height: 32),
+                              const SizedBox(height: 20),
 
-                          // Règles
-                          Container(
-                            padding: const EdgeInsets.all(16),
-                            decoration: BoxDecoration(
-                              color: ISPMColors.grey100,
-                              borderRadius: BorderRadius.circular(14),
-                            ),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                const Text(
-                                  'Critères recommandés',
-                                  style: TextStyle(
-                                    fontFamily: 'Poppins',
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w600,
-                                    color: ISPMColors.grey600,
+                              // Champ Confirmation[cite: 4]
+                              _staggered(
+                                3,
+                                IspmTextField(
+                                  controller: _confirmController,
+                                  label: 'Confirmer le mot de passe',
+                                  hint: 'Votre nouveau mot de passe',
+                                  prefixIcon: Icons.lock_reset_rounded,
+                                  isPassword: _obscureConfirm,
+                                  showError: _showNewPasswordConfirmationError,
+                                  errorText: 'Confirmation du mot de passe requis',
+                                  suffixIcon: IconButton(
+                                    icon: Icon(
+                                      _obscureConfirm ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+                                      color: Colors.white.withOpacity(0.3),
+                                      size: 18,
+                                    ),
+                                    onPressed: () => setState(() => _obscureConfirm = !_obscureConfirm),
                                   ),
+                                  validator: (v) => v != _passwordController.text ? 'Les mots de passe ne correspondent pas' : null,
                                 ),
-                                const SizedBox(height: 10),
-                                _Rule(
-                                  label: 'Au moins 8 caractères',
-                                  ok: _passwordController.text.length >= 8,
-                                ),
-                                _Rule(
-                                  label: 'Une lettre majuscule',
-                                  ok: RegExp(r'[A-Z]')
-                                      .hasMatch(_passwordController.text),
-                                ),
-                                _Rule(
-                                  label: 'Un chiffre',
-                                  ok: RegExp(r'[0-9]')
-                                      .hasMatch(_passwordController.text),
-                                ),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(height: 32),
-
-                          // Bouton
-                          ElevatedButton(
-                            onPressed:
-                            state is AuthLoading ? null : _onSubmit,
-                            child: state is AuthLoading
-                                ? const SizedBox(
-                              height: 22,
-                              width: 22,
-                              child: CircularProgressIndicator(
-                                color: Colors.white,
-                                strokeWidth: 2.5,
                               ),
-                            )
-                                : const Text('Enregistrer et continuer'),
+
+                              const SizedBox(height: 24),
+
+                              _staggered(4, _RulesBox(password: _passwordController.text)),
+
+                              const SizedBox(height: 32),
+
+                              // Bouton Enregistrer[cite: 3]
+                              _staggered(
+                                5,
+                                IspmButton(
+                                  text: 'Enregistrer et continuer',
+                                  isLoading: state is AuthLoading,
+                                  onPressed: _onSubmit,
+                                  icon: Icons.shield_outlined,
+                                ),
+                              ),
+                            ],
                           ),
-                        ],
+                        ),
                       ),
-                    ),
+                    ],
                   ),
-                ],
+                ),
               ),
-            ),
+            ],
           );
         },
       ),
@@ -316,19 +262,131 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
   }
 }
 
-class _FieldLabel extends StatelessWidget {
-  final String label;
-  const _FieldLabel({required this.label});
+// ─────────────────────────────────────────────────────────────────────────────
+// COMPOSANTS LOCAUX (PROPRES À CETTE PAGE)
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _PageBackground extends StatelessWidget {
+  const _PageBackground();
+
   @override
   Widget build(BuildContext context) {
-    return Text(
-      label,
-      style: const TextStyle(
-        fontFamily: 'Poppins',
-        fontSize: 13,
-        fontWeight: FontWeight.w600,
-        color: ISPMColors.grey600,
-        letterSpacing: 0.2,
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        Positioned(
+          top: -60,
+          right: -40,
+          child: IspmGlowBlob.circle(
+            radius: 110,
+            primaryColor: ISPMColors.green.withOpacity(0.18),
+          ),
+        ),
+        const IspmMeshGrid(opacity: 0.022), // Grille réutilisée[cite: 2]
+      ],
+    );
+  }
+}
+
+class _PageHeader extends StatelessWidget {
+  const _PageHeader();
+
+  @override
+  Widget build(BuildContext context) {
+    final user = (context.findAncestorStateOfType<_ChangePasswordPageState>())?.widget.user;
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(24, 32, 24, 0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 50,
+            height: 50,
+            decoration: BoxDecoration(
+              color: ISPMColors.green.withOpacity(0.15),
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: ISPMColors.green.withOpacity(0.3)),
+            ),
+            child: const Icon(Icons.security_rounded, color: ISPMColors.green, size: 24),
+          ),
+          const SizedBox(height: 18),
+          const Text(
+            'Première connexion',
+            style: TextStyle(fontFamily: 'Poppins', fontSize: 24, fontWeight: FontWeight.w700, color: Colors.white),
+          ),
+          const SizedBox(height: 10),
+          RichText(
+            text: TextSpan(
+              style: TextStyle(fontFamily: 'Poppins', fontSize: 13, color: Colors.white.withOpacity(0.45), height: 1.65),
+              children: [
+                const TextSpan(text: 'Bonjour '),
+                TextSpan(
+                  text: user?.name ?? '',
+                  style: const TextStyle(color: ISPMColors.green, fontWeight: FontWeight.w600),
+                ),
+                const TextSpan(text: ', veuillez définir un mot de passe personnel pour votre compte.'),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _StrengthIndicator extends StatelessWidget {
+  final int strength;
+  final Color color;
+  final String label;
+
+  const _StrengthIndicator({required this.strength, required this.color, required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Expanded(
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(4),
+            child: LinearProgressIndicator(
+              value: strength / 5,
+              backgroundColor: Colors.white.withOpacity(0.08),
+              color: color,
+              minHeight: 4,
+            ),
+          ),
+        ),
+        const SizedBox(width: 10),
+        Text(label, style: TextStyle(fontFamily: 'Poppins', fontSize: 11, fontWeight: FontWeight.w600, color: color)),
+      ],
+    );
+  }
+}
+
+class _RulesBox extends StatelessWidget {
+  final String password;
+  const _RulesBox({required this.password});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.04),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.white.withOpacity(0.08)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('CRITÈRES RECOMMANDÉS',
+              style: TextStyle(fontSize: 9, fontWeight: FontWeight.w600, letterSpacing: 1.0, color: Colors.white.withOpacity(0.3))),
+          const SizedBox(height: 12),
+          _Rule(label: 'Au moins 8 caractères', ok: password.length >= 8),
+          _Rule(label: 'Une lettre majuscule', ok: RegExp(r'[A-Z]').hasMatch(password)),
+          _Rule(label: 'Un chiffre', ok: RegExp(r'[0-9]').hasMatch(password)),
+        ],
       ),
     );
   }
@@ -338,26 +396,17 @@ class _Rule extends StatelessWidget {
   final String label;
   final bool ok;
   const _Rule({required this.label, required this.ok});
+
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 6),
+      padding: const EdgeInsets.only(bottom: 8),
       child: Row(
         children: [
-          Icon(
-            ok ? Icons.check_circle_rounded : Icons.circle_outlined,
-            size: 14,
-            color: ok ? ISPMColors.green : ISPMColors.grey400,
-          ),
-          const SizedBox(width: 8),
-          Text(
-            label,
-            style: TextStyle(
-              fontFamily: 'Poppins',
-              fontSize: 12,
-              color: ok ? ISPMColors.greenDark : ISPMColors.grey400,
-            ),
-          ),
+          Icon(ok ? Icons.check_circle : Icons.radio_button_unchecked,
+              size: 16, color: ok ? ISPMColors.green : Colors.white.withOpacity(0.2)),
+          const SizedBox(width: 10),
+          Text(label, style: TextStyle(fontSize: 12, color: ok ? Colors.white : Colors.white.withOpacity(0.3))),
         ],
       ),
     );

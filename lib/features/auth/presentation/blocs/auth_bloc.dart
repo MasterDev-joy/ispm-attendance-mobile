@@ -44,10 +44,12 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     emit(AuthLoading());
     try {
       final user = await _authRepository.getCurrentUser();
-      if (user != null) {
-        emit(AuthAuthenticated(user));
-      } else {
+      if (user == null) {
         emit(AuthUnauthenticated());
+      } else if (user.isFirstLogin) {
+        emit(AuthRequiresPasswordChange(user));
+      } else {
+        emit(AuthAuthenticated(user));
       }
     } catch (_) {
       emit(AuthUnauthenticated());

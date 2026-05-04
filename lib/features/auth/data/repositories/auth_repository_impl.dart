@@ -40,7 +40,7 @@ class AuthRepositoryImpl implements AuthRepository {
   @override
   Future<void> updatePassword(String userId, String newPassword) async {
     final token = await localDao.getToken();
-    final response = await client.put(
+    final response = await client.post(
       Uri.parse('${AppConfig.baseUrl}/api/auth/change-password'),
       headers: {
         'Content-Type': 'application/json',
@@ -53,17 +53,29 @@ class AuthRepositoryImpl implements AuthRepository {
       final errorData = jsonDecode(response.body);
       throw Exception(errorData['error'] ?? 'Erreur de changement de mot de passe');
     }
+
+    await localDao.saveIsFirstLogin(false);
   }
 
   @override
   Future<User?> getCurrentUser() async {
-    // Si on a un token, on considère que l'utilisateur est connecté.
-    // (Dans un projet plus avancé, on appellerait une route /me sur le serveur pour revérifier le token)
     final token = await localDao.getToken();
-    if (token != null) {
-      // Retourne un utilisateur "bouchon" juste pour passer le Splash Screen
-      return const UserModel(id: '1', email: '', name: 'Professeur', role: 'PROFESSOR', isFirstLogin: false);
+    if (token == null) return null;
+
+    final response = await client.get(
+      Uri.parse('${AppConfig.baseUrl}/api/auth/me'),
+      headers: {'Authorization': 'Bearer $token'},
+    );
+
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+
+      await localDao.saveIsFirstLogin(data['user']['isFirstLogin'] as bool);
+
+      return UserModel.fromJson(data['user']);
     }
+    // Token expiré ou invalide → déconnexion
+    await localDao.deleteToken();
     return null;
   }
 

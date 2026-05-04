@@ -8,6 +8,6 @@
 class AppConfig {
   static const String baseUrl = String.fromEnvironment(
     'BASE_URL',
-    defaultValue: 'http://192.168.1.175:3000',
+    defaultValue: 'http://192.168.43.207:3000',
   );
 }

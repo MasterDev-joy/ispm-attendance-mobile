@@ -1,12 +1,22 @@
 // lib/features/attendance/presentation/pages/attendance_scanner_page.dart
+//
+// Page Scanner QR — Superviseur uniquement.
+// Scanne le QR affiché par le professeur et valide via AttendanceBloc.
+// Style dark avec accent bleu superviseur, overlay amélioré.
+// ─────────────────────────────────────────────────────────────────────────────
+
 import 'package:flutter/material.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+
+import '../../../../core/theme/app_theme.dart';
+import '../../../../core/presentation/widgets/ispm_glow_blob.dart';
 import '../blocs/attendance_bloc.dart';
 import '../blocs/attendance_event.dart';
 import '../blocs/attendance_state.dart';
 import 'validation_success_page.dart';
-import '../../../../core/theme/app_theme.dart';
+
+const _kBlue = Color(0xFF378ADD);
 
 class AttendanceScannerPage extends StatefulWidget {
   const AttendanceScannerPage({super.key});
@@ -16,27 +26,70 @@ class AttendanceScannerPage extends StatefulWidget {
 }
 
 class _AttendanceScannerPageState extends State<AttendanceScannerPage>
-    with SingleTickerProviderStateMixin {
+    with TickerProviderStateMixin {
+
   bool _isProcessing = false;
+
+  // Ligne de scan animée
   late AnimationController _scanLineCtrl;
-  late Animation<double> _scanLine;
+  late Animation<double>   _scanLine;
+
+  // Pulse sur le cadre quand scan en cours
+  late AnimationController _processingCtrl;
+  late Animation<double>   _processingAnim;
+
+  // Entrée fade de la page
+  late AnimationController _entryCtrl;
+  late Animation<double>   _entryAnim;
+
+  final MobileScannerController _cameraCtrl = MobileScannerController();
 
   @override
   void initState() {
     super.initState();
-    _scanLineCtrl = AnimationController(
-      vsync: this,
-      duration: const Duration(seconds: 2),
-    )..repeat(reverse: true);
+
+    _scanLineCtrl = AnimationController(vsync: this,
+        duration: const Duration(milliseconds: 1800))..repeat(reverse: true);
     _scanLine = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(parent: _scanLineCtrl, curve: Curves.easeInOut),
-    );
+        CurvedAnimation(parent: _scanLineCtrl, curve: Curves.easeInOut));
+
+    _processingCtrl = AnimationController(vsync: this,
+        duration: const Duration(milliseconds: 600))..repeat(reverse: true);
+    _processingAnim = Tween<double>(begin: 0.6, end: 1.0).animate(
+        CurvedAnimation(parent: _processingCtrl, curve: Curves.easeInOut));
+
+    _entryCtrl = AnimationController(vsync: this,
+        duration: const Duration(milliseconds: 500))..forward();
+    _entryAnim = CurvedAnimation(parent: _entryCtrl, curve: Curves.easeOut);
   }
 
   @override
   void dispose() {
     _scanLineCtrl.dispose();
+    _processingCtrl.dispose();
+    _entryCtrl.dispose();
+    _cameraCtrl.dispose();
     super.dispose();
+  }
+
+  void _onDetect(BarcodeCapture capture) {
+    if (_isProcessing) return;
+
+    for (final barcode in capture.barcodes) {
+      final raw = barcode.rawValue;
+      if (raw != null && raw.contains('|')) {
+        final parts = raw.split('|');
+        if (parts.length == 3) {
+          setState(() => _isProcessing = true);
+          context.read<AttendanceBloc>().add(ValidateQrEvent(
+            token:       parts[0],
+            professorId: parts[1],
+            courseId:    parts[2],
+          ));
+        }
+        break;
+      }
+    }
   }
 
   @override
@@ -46,172 +99,85 @@ class _AttendanceScannerPageState extends State<AttendanceScannerPage>
       body: BlocConsumer<AttendanceBloc, AttendanceState>(
         listener: (context, state) {
           if (state is AttendanceValidationSuccess) {
-            Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(
-                builder: (_) => ValidationSuccessPage(
-                  validationData: state.validationData,
-                ),
-              ),
-            );
+            Navigator.pushReplacement(context, MaterialPageRoute(
+              builder: (_) => ValidationSuccessPage(
+                  validationData: state.validationData),
+            ));
           } else if (state is AttendanceError) {
+            setState(() => _isProcessing = false);
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                content: Row(
-                  children: [
-                    const Icon(Icons.error_outline,
-                        color: Colors.white, size: 18),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Text(
-                        state.message,
-                        style: const TextStyle(
-                          fontFamily: 'Poppins',
-                          fontSize: 13,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
+                content: Row(children: [
+                  const Icon(Icons.error_outline_rounded,
+                      color: Colors.white, size: 18),
+                  const SizedBox(width: 10),
+                  Expanded(child: Text(state.message,
+                      style: const TextStyle(fontFamily: 'Poppins', fontSize: 13))),
+                ]),
                 backgroundColor: ISPMColors.error,
                 behavior: SnackBarBehavior.floating,
+                margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
                 shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12)),
               ),
             );
-            setState(() => _isProcessing = false);
           }
         },
         builder: (context, state) {
+          final isLoading = state is AttendanceLoading || _isProcessing;
+
           return Stack(
             children: [
-              // ── Caméra plein écran ──
+              // ── Caméra plein écran ─────────────────────────────────
               MobileScanner(
-                onDetect: (capture) {
-                  if (_isProcessing) return;
-                  for (final barcode in capture.barcodes) {
-                    final rawValue = barcode.rawValue;
-                    if (rawValue != null && rawValue.contains('|')) {
-                      setState(() => _isProcessing = true);
-                      final parts = rawValue.split('|');
-                      if (parts.length == 3) {
-                        context.read<AttendanceBloc>().add(
-                          ValidateQrEvent(
-                            token: parts[0],
-                            professorId: parts[1],
-                            courseId: parts[2],
-                          ),
-                        );
-                      } else {
-                        setState(() => _isProcessing = false);
-                      }
-                      break;
-                    }
-                  }
-                },
+                controller: _cameraCtrl,
+                onDetect: _onDetect,
               ),
 
-              // ── Overlay sombre avec découpe ──
-              _ScannerOverlay(scanLine: _scanLine),
+              // ── Overlay personnalisé ────────────────────────────────
+              AnimatedBuilder(
+                animation: _scanLine,
+                builder: (_, __) => CustomPaint(
+                  painter: _ScannerOverlayPainter(
+                    scanLineValue: _scanLine.value,
+                    isProcessing:  isLoading,
+                    frameColor:    isLoading ? _kBlue : ISPMColors.green,
+                  ),
+                  child: const SizedBox.expand(),
+                ),
+              ),
 
-              // ── UI par-dessus ──
+              // ── Blob bleu coin haut ────────────────────────────────
+              Positioned(top: -60, right: -60,
+                  child: IspmGlowBlob.circle(radius: 160,
+                      primaryColor: _kBlue.withOpacity(0.12),
+                      secondaryColor: Colors.transparent)),
+
+              // ── UI SafeArea ────────────────────────────────────────
               SafeArea(
-                child: Column(
-                  children: [
-                    // App bar custom
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-                      child: Row(
-                        children: [
-                          IconButton(
-                            onPressed: () => Navigator.pop(context),
-                            icon: Container(
-                              padding: const EdgeInsets.all(8),
-                              decoration: BoxDecoration(
-                                color: Colors.black.withOpacity(0.4),
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: const Icon(
-                                Icons.arrow_back_ios_new_rounded,
-                                size: 16,
-                                color: Colors.white,
-                              ),
-                            ),
-                          ),
-                          const Expanded(
-                            child: Text(
-                              'Scanner un professeur',
-                              textAlign: TextAlign.center,
-                              style: TextStyle(
-                                fontFamily: 'Poppins',
-                                fontSize: 16,
-                                fontWeight: FontWeight.w600,
-                                color: Colors.white,
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 48),
-                        ],
-                      ),
-                    ),
-                    const Spacer(),
-                    // Texte bas
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(32, 0, 32, 48),
-                      child: Column(
-                        children: [
-                          if (state is AttendanceLoading ||
-                              (_isProcessing && state is! AttendanceError)) ...[
-                            const SizedBox(
-                              width: 28,
-                              height: 28,
-                              child: CircularProgressIndicator(
-                                color: ISPMColors.green,
-                                strokeWidth: 2.5,
-                              ),
-                            ),
-                            const SizedBox(height: 12),
-                            const Text(
-                              'Vérification en cours…',
-                              style: TextStyle(
-                                fontFamily: 'Poppins',
-                                fontSize: 14,
-                                color: Colors.white,
-                              ),
-                            ),
-                          ] else ...[
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 20, vertical: 10),
-                              decoration: BoxDecoration(
-                                color: Colors.black.withOpacity(0.5),
-                                borderRadius: BorderRadius.circular(24),
-                              ),
-                              child: const Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Icon(
-                                    Icons.qr_code_scanner_rounded,
-                                    size: 16,
-                                    color: ISPMColors.green,
-                                  ),
-                                  SizedBox(width: 8),
-                                  Text(
-                                    'Pointez la caméra vers le QR code',
-                                    style: TextStyle(
-                                      fontFamily: 'Poppins',
-                                      fontSize: 13,
-                                      color: Colors.white,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ],
-                      ),
-                    ),
-                  ],
+                child: FadeTransition(
+                  opacity: _entryAnim,
+                  child: Column(
+                    children: [
+                      // AppBar
+                      _buildAppBar(),
+
+                      const Spacer(),
+
+                      // Zone cadre centrale — indicateur
+                      if (isLoading)
+                        _ProcessingIndicator(anim: _processingAnim)
+                      else
+                        const _ScanHint(),
+
+                      const SizedBox(height: 48),
+
+                      // Footer info rôle
+                      _buildFooter(),
+
+                      const SizedBox(height: 24),
+                    ],
+                  ),
                 ),
               ),
             ],
@@ -220,108 +186,247 @@ class _AttendanceScannerPageState extends State<AttendanceScannerPage>
       ),
     );
   }
-}
 
-// ── Overlay avec cadre de scan et ligne animée ───────────────────────
-class _ScannerOverlay extends StatelessWidget {
-  final Animation<double> scanLine;
-  const _ScannerOverlay({required this.scanLine});
+  Widget _buildAppBar() {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+      child: Row(children: [
+        // Bouton retour
+        GestureDetector(
+          onTap: () => Navigator.pop(context),
+          child: Container(
+              width: 40, height: 40,
+              decoration: BoxDecoration(
+                  color: Colors.black.withOpacity(0.45),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.white.withOpacity(0.15))),
+              child: const Icon(Icons.arrow_back_ios_new_rounded,
+                  size: 15, color: Colors.white)),
+        ),
+        const Expanded(
+          child: Text('Scanner un professeur',
+              textAlign: TextAlign.center,
+              style: TextStyle(fontFamily: 'Poppins', fontSize: 16,
+                  fontWeight: FontWeight.w600, color: Colors.white)),
+        ),
+        // Bouton torche
+        GestureDetector(
+          onTap: () => _cameraCtrl.toggleTorch(),
+          child: Container(
+              width: 40, height: 40,
+              decoration: BoxDecoration(
+                  color: Colors.black.withOpacity(0.45),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.white.withOpacity(0.15))),
+              child: Icon(Icons.flashlight_on_rounded,
+                  size: 18, color: Colors.white.withOpacity(0.80))),
+        ),
+      ]),
+    );
+  }
 
-  @override
-  Widget build(BuildContext context) {
-    return CustomPaint(
-      painter: _OverlayPainter(scanLine: scanLine),
-      child: Container(),
+  Widget _buildFooter() {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 24),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        color: Colors.black.withOpacity(0.55),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: _kBlue.withOpacity(0.30)),
+      ),
+      child: Row(children: [
+        Container(width: 34, height: 34,
+            decoration: BoxDecoration(
+                color: _kBlue.withOpacity(0.20),
+                borderRadius: BorderRadius.circular(10)),
+            child: const Icon(Icons.verified_user_rounded,
+                size: 16, color: _kBlue)),
+        const SizedBox(width: 12),
+        Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('Mode Superviseur',
+                  style: TextStyle(fontFamily: 'Poppins', fontSize: 12,
+                      fontWeight: FontWeight.w600, color: Colors.white)),
+              Text('Validez la présence du professeur',
+                  style: TextStyle(fontFamily: 'Poppins', fontSize: 10,
+                      color: Colors.white.withOpacity(0.45))),
+            ])),
+      ]),
     );
   }
 }
 
-class _OverlayPainter extends CustomPainter {
-  final Animation<double> scanLine;
+// ── Hint scan ─────────────────────────────────────────────────────────────────
 
-  _OverlayPainter({required this.scanLine}) : super(repaint: scanLine);
+class _ScanHint extends StatelessWidget {
+  const _ScanHint();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+      decoration: BoxDecoration(
+        color: Colors.black.withOpacity(0.50),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: Colors.white.withOpacity(0.10)),
+      ),
+      child: const Row(mainAxisSize: MainAxisSize.min, children: [
+        Icon(Icons.qr_code_scanner_rounded, size: 16, color: ISPMColors.green),
+        SizedBox(width: 8),
+        Text('Pointez la caméra vers le QR code',
+            style: TextStyle(fontFamily: 'Poppins', fontSize: 13,
+                color: Colors.white)),
+      ]),
+    );
+  }
+}
+
+// ── Indicateur traitement ─────────────────────────────────────────────────────
+
+class _ProcessingIndicator extends StatelessWidget {
+  final Animation<double> anim;
+  const _ProcessingIndicator({required this.anim});
+
+  @override
+  Widget build(BuildContext context) {
+    return FadeTransition(
+      opacity: anim,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+        decoration: BoxDecoration(
+          color: _kBlue.withOpacity(0.18),
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(color: _kBlue.withOpacity(0.40)),
+        ),
+        child: const Row(mainAxisSize: MainAxisSize.min, children: [
+          SizedBox(width: 18, height: 18,
+              child: CircularProgressIndicator(
+                  color: _kBlue, strokeWidth: 2.2)),
+          SizedBox(width: 12),
+          Text('Vérification en cours…',
+              style: TextStyle(fontFamily: 'Poppins', fontSize: 13,
+                  fontWeight: FontWeight.w500, color: Colors.white)),
+        ]),
+      ),
+    );
+  }
+}
+
+// ── Painter overlay ───────────────────────────────────────────────────────────
+
+class _ScannerOverlayPainter extends CustomPainter {
+  final double scanLineValue;
+  final bool   isProcessing;
+  final Color  frameColor;
+
+  const _ScannerOverlayPainter({
+    required this.scanLineValue,
+    required this.isProcessing,
+    required this.frameColor,
+  });
 
   @override
   void paint(Canvas canvas, Size size) {
-    final cutoutSize = size.width * 0.72;
-    final cutoutLeft = (size.width - cutoutSize) / 2;
-    final cutoutTop = (size.height - cutoutSize) / 2 - 20;
-    final cutoutRect = Rect.fromLTWH(
-        cutoutLeft, cutoutTop, cutoutSize, cutoutSize);
+    final cutoutW    = size.width * 0.74;
+    final cutoutH    = cutoutW;
+    final cutoutLeft = (size.width  - cutoutW) / 2;
+    final cutoutTop  = (size.height - cutoutH) / 2 - 24;
+    final cutoutRect = Rect.fromLTWH(cutoutLeft, cutoutTop, cutoutW, cutoutH);
+    const radius     = Radius.circular(22);
 
-    // Assombrir le fond
-    final bgPaint = Paint()..color = Colors.black.withOpacity(0.6);
-    final fullRect = Rect.fromLTWH(0, 0, size.width, size.height);
+    // Fond sombre avec découpe
+    final bgPaint = Paint()..color = Colors.black.withOpacity(0.62);
     final path = Path()
-      ..addRect(fullRect)
-      ..addRRect(RRect.fromRectAndRadius(
-          cutoutRect, const Radius.circular(20)))
+      ..addRect(Rect.fromLTWH(0, 0, size.width, size.height))
+      ..addRRect(RRect.fromRectAndRadius(cutoutRect, radius))
       ..fillType = PathFillType.evenOdd;
     canvas.drawPath(path, bgPaint);
 
-    // Coins du cadre
+    // Coins animés
     final cornerPaint = Paint()
-      ..color = ISPMColors.green
+      ..color = frameColor
       ..style = PaintingStyle.stroke
       ..strokeWidth = 3.5
       ..strokeCap = StrokeCap.round;
 
-    const cL = 28.0; // longueur des coins
-    final r = const Radius.circular(20);
+    const cL = 30.0;
 
-    // Coin haut-gauche
-    canvas.drawPath(
-      Path()
-        ..moveTo(cutoutLeft, cutoutTop + cL)
-        ..arcToPoint(Offset(cutoutLeft + cL, cutoutTop),
-            radius: r, clockwise: true),
-      cornerPaint,
-    );
-    // Coin haut-droit
-    canvas.drawPath(
-      Path()
-        ..moveTo(cutoutLeft + cutoutSize - cL, cutoutTop)
-        ..arcToPoint(Offset(cutoutLeft + cutoutSize, cutoutTop + cL),
-            radius: r, clockwise: false),
-      cornerPaint,
-    );
-    // Coin bas-gauche
-    canvas.drawPath(
-      Path()
-        ..moveTo(cutoutLeft, cutoutTop + cutoutSize - cL)
-        ..arcToPoint(Offset(cutoutLeft + cL, cutoutTop + cutoutSize),
-            radius: r, clockwise: false),
-      cornerPaint,
-    );
-    // Coin bas-droit
-    canvas.drawPath(
-      Path()
-        ..moveTo(cutoutLeft + cutoutSize - cL, cutoutTop + cutoutSize)
-        ..arcToPoint(
-            Offset(cutoutLeft + cutoutSize, cutoutTop + cutoutSize - cL),
-            radius: r,
-            clockwise: true),
-      cornerPaint,
-    );
+    void _drawCorner(Offset start, Offset end, Offset arc, bool cw) {
+      canvas.drawPath(
+        Path()
+          ..moveTo(start.dx, start.dy)
+          ..arcToPoint(arc, radius: radius, clockwise: cw)
+          ..lineTo(end.dx, end.dy),
+        cornerPaint,
+      );
+    }
 
-    // Ligne de scan animée
-    final lineY = cutoutTop + cutoutSize * scanLine.value;
-    final linePaint = Paint()
-      ..shader = LinearGradient(
-        colors: [
-          ISPMColors.green.withOpacity(0),
-          ISPMColors.green.withOpacity(0.9),
-          ISPMColors.green.withOpacity(0),
-        ],
-      ).createShader(Rect.fromLTWH(cutoutLeft, lineY, cutoutSize, 2));
-
+    // Haut-gauche
+    _drawCorner(
+      Offset(cutoutLeft, cutoutTop + cL),
+      Offset(cutoutLeft + cL, cutoutTop),
+      Offset(cutoutLeft + cL, cutoutTop), true,
+    );
     canvas.drawLine(
-      Offset(cutoutLeft + 10, lineY),
-      Offset(cutoutLeft + cutoutSize - 10, lineY),
-      linePaint..strokeWidth = 2,
-    );
+        Offset(cutoutLeft, cutoutTop + cL),
+        Offset(cutoutLeft, cutoutTop + 1),
+        cornerPaint);
+    canvas.drawLine(
+        Offset(cutoutLeft, cutoutTop),
+        Offset(cutoutLeft + cL, cutoutTop),
+        cornerPaint);
+
+    // Haut-droit
+    canvas.drawLine(
+        Offset(cutoutLeft + cutoutW, cutoutTop + cL),
+        Offset(cutoutLeft + cutoutW, cutoutTop + 1),
+        cornerPaint);
+    canvas.drawLine(
+        Offset(cutoutLeft + cutoutW, cutoutTop),
+        Offset(cutoutLeft + cutoutW - cL, cutoutTop),
+        cornerPaint);
+
+    // Bas-gauche
+    canvas.drawLine(
+        Offset(cutoutLeft, cutoutTop + cutoutH - cL),
+        Offset(cutoutLeft, cutoutTop + cutoutH - 1),
+        cornerPaint);
+    canvas.drawLine(
+        Offset(cutoutLeft, cutoutTop + cutoutH),
+        Offset(cutoutLeft + cL, cutoutTop + cutoutH),
+        cornerPaint);
+
+    // Bas-droit
+    canvas.drawLine(
+        Offset(cutoutLeft + cutoutW, cutoutTop + cutoutH - cL),
+        Offset(cutoutLeft + cutoutW, cutoutTop + cutoutH - 1),
+        cornerPaint);
+    canvas.drawLine(
+        Offset(cutoutLeft + cutoutW, cutoutTop + cutoutH),
+        Offset(cutoutLeft + cutoutW - cL, cutoutTop + cutoutH),
+        cornerPaint);
+
+    // Ligne de scan (uniquement si pas en traitement)
+    if (!isProcessing) {
+      final lineY = cutoutTop + cutoutH * scanLineValue;
+      final linePaint = Paint()
+        ..shader = LinearGradient(colors: [
+          frameColor.withOpacity(0),
+          frameColor.withOpacity(0.90),
+          frameColor.withOpacity(0),
+        ]).createShader(Rect.fromLTWH(cutoutLeft, lineY, cutoutW, 2))
+        ..strokeWidth = 2;
+      canvas.drawLine(
+        Offset(cutoutLeft + 12, lineY),
+        Offset(cutoutLeft + cutoutW - 12, lineY),
+        linePaint,
+      );
+    }
   }
 
   @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
+  bool shouldRepaint(_ScannerOverlayPainter old) =>
+      old.scanLineValue != scanLineValue ||
+          old.isProcessing  != isProcessing  ||
+          old.frameColor    != frameColor;
 }

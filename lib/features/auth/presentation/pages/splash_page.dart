@@ -1,6 +1,9 @@
 // lib/features/auth/presentation/pages/splash_page.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import '../../../../core/presentation/widgets/ispm_animated_logo.dart';
+import '../../../../core/presentation/widgets/ispm_glow_blob.dart';
+import '../../../../core/presentation/widgets/ispm_mesh_grid.dart';
 import '../blocs/auth_bloc.dart';
 import '../blocs/auth_state.dart';
 import '../../../../core/theme/app_theme.dart';
@@ -14,52 +17,33 @@ class SplashPage extends StatefulWidget {
 
 class _SplashPageState extends State<SplashPage>
     with SingleTickerProviderStateMixin {
-  late AnimationController _controller;
-  late Animation<double> _logoScale;
-  late Animation<double> _logoOpacity;
-  late Animation<double> _textOpacity;
-  late Animation<Offset> _textSlide;
+  late final AnimationController _controller;
+  late final Animation<double> _fadeAnim;
+  late final Animation<double> _scaleAnim;
 
   @override
   void initState() {
     super.initState();
     _controller = AnimationController(
-      duration: const Duration(milliseconds: 1800),
+      duration: const Duration(milliseconds: 1500),
       vsync: this,
     );
 
-    _logoScale = Tween<double>(begin: 0.6, end: 1.0).animate(
+    _fadeAnim = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(
         parent: _controller,
-        curve: const Interval(0.0, 0.6, curve: Curves.elasticOut),
+        curve: const Interval(0.0, 0.55, curve: Curves.easeIn),
       ),
     );
 
-    _logoOpacity = Tween<double>(begin: 0.0, end: 1.0).animate(
+    _scaleAnim = Tween<double>(begin: 0.75, end: 1.0).animate(
       CurvedAnimation(
         parent: _controller,
-        curve: const Interval(0.0, 0.4, curve: Curves.easeIn),
+        curve: const Interval(0.0, 0.7, curve: Curves.elasticOut),
       ),
     );
 
-    _textOpacity = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(
-        parent: _controller,
-        curve: const Interval(0.4, 0.8, curve: Curves.easeIn),
-      ),
-    );
-
-    _textSlide = Tween<Offset>(
-      begin: const Offset(0, 0.4),
-      end: Offset.zero,
-    ).animate(
-      CurvedAnimation(
-        parent: _controller,
-        curve: const Interval(0.4, 0.8, curve: Curves.easeOut),
-      ),
-    );
-
-    _controller.forward();
+    _controller.forward().then((_) => _navigateToNextPage());
   }
 
   @override
@@ -68,161 +52,202 @@ class _SplashPageState extends State<SplashPage>
     super.dispose();
   }
 
+  void _navigateToNextPage() {
+    if (!mounted) return;
+    final state = context.read<AuthBloc>().state;
+    if (state is AuthLoading || state is AuthInitial) return;
+    if (state is AuthAuthenticated) {
+      Navigator.of(context).pushReplacementNamed('/home');
+    } else if (state is AuthRequiresPasswordChange) {
+      Navigator.of(context).pushReplacementNamed(
+        '/change-password',
+        arguments: state.user,
+      );
+    } else {
+      Navigator.of(context).pushReplacementNamed('/login');
+    }
+
+  }
+
   @override
   Widget build(BuildContext context) {
     return BlocListener<AuthBloc, AuthState>(
       listener: (context, state) {
-        if (state is AuthAuthenticated) {
-          Navigator.of(context).pushReplacementNamed('/home');
-        } else if (state is AuthUnauthenticated || state is AuthError) {
-          Navigator.of(context).pushReplacementNamed('/login');
-        }
+        if (_controller.isCompleted) _navigateToNextPage();
       },
       child: Scaffold(
-        backgroundColor: ISPMColors.black,
         body: Stack(
+          fit: StackFit.expand,
           children: [
-            // Fond décoratif — cercles verts flous
-            Positioned(
-              top: -80,
-              right: -60,
-              child: Container(
-                width: 260,
-                height: 260,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: ISPMColors.green.withOpacity(0.08),
-                ),
-              ),
-            ),
-            Positioned(
-              bottom: -100,
-              left: -80,
-              child: Container(
-                width: 320,
-                height: 320,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: ISPMColors.green.withOpacity(0.06),
-                ),
-              ),
-            ),
-            // Contenu centré
+            const _SplashBackground(),
             Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  // Logo animé
-                  FadeTransition(
-                    opacity: _logoOpacity,
-                    child: ScaleTransition(
-                      scale: _logoScale,
-                      child: Container(
-                        width: 210,
-                        height: 210,
-                        decoration: BoxDecoration(
-                          color: ISPMColors.white,
-                          borderRadius: BorderRadius.circular(28),
-                          boxShadow: [
-                            BoxShadow(
-                              color: ISPMColors.green.withOpacity(0.3),
-                              blurRadius: 40,
-                              spreadRadius: 0,
-                              offset: const Offset(0, 12),
-                            ),
-                          ],
-                        ),
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(28),
-                          child: Image.asset(
-                            'assets/images/logo_ispm.png',
-                            fit: BoxFit.contain,
-                            // Fallback si l'image n'existe pas encore
-                            errorBuilder: (_, __, ___) => const Center(
-                              child: Text(
-                                'ISPM',
-                                style: TextStyle(
-                                  fontFamily: 'Poppins',
-                                  fontSize:24,
-                                  fontWeight: FontWeight.w800,
-                                  color: ISPMColors.green,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 32),
-                  // Texte animé
-                  FadeTransition(
-                    opacity: _textOpacity,
-                    child: SlideTransition(
-                      position: _textSlide,
-                      child: Column(
-                        children: [
-                          const Text(
-                            'ISPM',
-                            style: TextStyle(
-                              fontFamily: 'Poppins',
-                              fontSize: 36,
-                              fontWeight: FontWeight.w800,
-                              color: ISPMColors.white,
-                              letterSpacing: 4,
-                            ),
-                          ),
-                          const SizedBox(height: 6),
-                          Text(
-                            'Gestion des présences',
-                            style: TextStyle(
-                              fontFamily: 'Poppins',
-                              fontSize: 14,
-                              fontWeight: FontWeight.w400,
-                              color: ISPMColors.white.withOpacity(0.5),
-                              letterSpacing: 0.5,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 80),
-                  // Indicateur de chargement
-                  FadeTransition(
-                    opacity: _textOpacity,
-                    child: SizedBox(
-                      width: 28,
-                      height: 28,
-                      child: CircularProgressIndicator(
-                        color: ISPMColors.green,
-                        strokeWidth: 2.5,
-                        backgroundColor: ISPMColors.white.withOpacity(0.1),
-                      ),
-                    ),
-                  ),
-                ],
+              child: _SplashContent(
+                fadeAnimation: _fadeAnim,
+                scaleAnimation: _scaleAnim,
               ),
             ),
-            // Version en bas
-            Positioned(
-              bottom: 40,
-              left: 0,
-              right: 0,
-              child: FadeTransition(
-                opacity: _textOpacity,
-                child: Text(
-                  'v1.0.0',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontFamily: 'Poppins',
-                    fontSize: 12,
-                    color: ISPMColors.white.withOpacity(0.25),
-                  ),
-                ),
-              ),
-            ),
+            _SplashLoader(fadeAnimation: _fadeAnim),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// BACKGROUND : radial glow + mesh grid
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _SplashBackground extends StatelessWidget {
+  const _SplashBackground();
+
+  @override
+  Widget build(BuildContext context) {
+    final size = MediaQuery.of(context).size;
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        // Fond dark ISPM
+        const ColoredBox(color: Color(0xFF0D1210)),
+
+        // Blob radial vert centré
+        Center(
+          child: IspmGlowBlob(
+            width: size.width * 0.85,
+            height: size.height * 0.5,
+            primaryColor: ISPMColors.greenDark.withOpacity(0.18),
+          ),
+        ),
+
+        // Blob secondaire discret en haut-gauche
+        Positioned(
+          top: -60,
+          left: -40,
+          child: IspmGlowBlob(
+            width: 220,
+            height: 220,
+            primaryColor: ISPMColors.green.withOpacity(0.10),
+          ),
+        ),
+
+        // Grille mesh fine
+        const Positioned.fill(child: IspmMeshGrid()),
+      ],
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// CONTENT : logo animé + titre + tagline
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _SplashContent extends StatelessWidget {
+  final Animation<double> fadeAnimation;
+  final Animation<double> scaleAnimation;
+
+  const _SplashContent({
+    required this.fadeAnimation,
+    required this.scaleAnimation,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        ScaleTransition(
+          scale: scaleAnimation,
+          child: FadeTransition(
+            opacity: fadeAnimation,
+            child: const IspmAnimatedLogo(
+              size: 160.0,
+              borderThickness: 5.0,
+            ),
+          ),
+        ),
+
+        const SizedBox(height: 32),
+
+        FadeTransition(
+          opacity: fadeAnimation,
+          child: const _SplashTitle(),
+        ),
+
+        const SizedBox(height: 10),
+
+        FadeTransition(
+          opacity: fadeAnimation,
+          child: const _SplashSubtitle(),
+        ),
+      ],
+    );
+  }
+}
+
+class _SplashTitle extends StatelessWidget {
+  const _SplashTitle();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Text(
+      'ISPM',
+      style: TextStyle(
+        fontSize: 44,
+        fontWeight: FontWeight.w900,
+        color: Colors.white,
+        letterSpacing: 10,
+        fontFamily: 'Poppins',
+        height: 1,
+      ),
+    );
+  }
+}
+
+class _SplashSubtitle extends StatelessWidget {
+  const _SplashSubtitle();
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      'Gestion des présences',
+      style: TextStyle(
+        fontSize: 12,
+        color: Colors.white.withOpacity(0.5),
+        letterSpacing: 2.5,
+        fontFamily: 'Poppins',
+        fontWeight: FontWeight.w400,
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// LOADER : barre de progression en bas
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _SplashLoader extends StatelessWidget {
+  final Animation<double> fadeAnimation;
+
+  const _SplashLoader({required this.fadeAnimation});
+
+  @override
+  Widget build(BuildContext context) {
+    return Positioned(
+      bottom: 56,
+      left: 0,
+      right: 0,
+      child: FadeTransition(
+        opacity: fadeAnimation,
+        child: const Center(
+          child: SizedBox(
+            width: 48,
+            child: LinearProgressIndicator(
+              minHeight: 2,
+              backgroundColor: Colors.transparent,
+              color: ISPMColors.green,
+              borderRadius: BorderRadius.all(Radius.circular(2)),
+            ),
+          ),
         ),
       ),
     );

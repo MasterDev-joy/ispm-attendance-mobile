@@ -19,4 +19,14 @@ class AuthLocalDao {
   Future<void> deleteToken() async {
     await storage.delete(key: 'jwt_token');
   }
+
+  // Sauvegarde du status de la  première login
+  Future<void> saveIsFirstLogin(bool value) async {
+    await storage.write(key: 'isFirstLogin', value: value.toString());
+  }
+
+  // Récupère le staus de la première login
+  Future<String?> getIsFirstLogin() async {
+    return await storage.read(key: 'isFirstLogin');
+  }
 }
