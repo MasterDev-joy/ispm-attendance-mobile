@@ -46,7 +46,7 @@ class SessionAttendance {
       scanTime: json['scanTime'] != null
           ? DateTime.tryParse(json['scanTime'] as String)
           : null,
-      invigilatorName: json['invigilator']?['name'] as String?,
+      invigilatorName: "${json['invigilator']?['firstName']} ${json['invigilator']?['lastName']}",
       invigilatorEmail: json['invigilator']?['email'] as String?,
     );
   }
