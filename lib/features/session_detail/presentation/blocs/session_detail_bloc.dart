@@ -30,8 +30,8 @@ class SessionDetailBloc
         id: 'att-001',
         status: AttendanceStatus.onTime,
         scanTime: event.course.startTime.add(const Duration(minutes: 3)),
-        invigilatorName: 'Jean Rakoto',
-        invigilatorEmail: 'j.rakoto@ispm.mg',
+        supervisorName: 'Jean Rakoto',
+        supervisorEmail: 'j.rakoto@ispm.mg',
       );
 
       emit(SessionDetailLoaded(course: event.course, attendance: attendance));
@@ -124,10 +124,10 @@ class SessionDetailBloc
                     pw.SizedBox(height: 6),
                     if (att?.scanTime != null)
                       _pdfRow('Heure de scan', fmt.format(att!.scanTime!)),
-                    if (att?.invigilatorName != null)
-                      _pdfRow('Validé par', att!.invigilatorName!),
-                    if (att?.invigilatorEmail != null)
-                      _pdfRow('Contact', att!.invigilatorEmail!),
+                    if (att?.supervisorName != null)
+                      _pdfRow('Validé par', att!.supervisorName!),
+                    if (att?.supervisorEmail != null)
+                      _pdfRow('Contact', att!.supervisorEmail!),
                     if (att == null)
                       pw.Text('Aucun enregistrement de scan pour cette séance.',
                           style: const pw.TextStyle(

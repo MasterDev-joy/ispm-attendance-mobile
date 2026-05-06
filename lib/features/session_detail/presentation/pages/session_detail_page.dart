@@ -287,7 +287,7 @@ class _FourCounters extends StatelessWidget {
     final duration   = course.endTime.difference(course.startTime);
     final durationLbl = '${duration.inHours}h'
         '${duration.inMinutes.remainder(60).toString().padLeft(2, '0')}';
-    final invigilator = attendance?.invigilatorName ?? 'Aucun';
+    final invigilator = attendance?.supervisorName ?? 'Aucun';
 
     return GridView.count(
       shrinkWrap: true,
@@ -418,16 +418,16 @@ class _AttendanceDetailCard extends StatelessWidget {
               value: fmtTime(attendance!.scanTime!)),
           const SizedBox(height: 10),
         ],
-        if (attendance?.invigilatorName != null) ...[
+        if (attendance?.supervisorName != null) ...[
           _DetailRow(icon: Icons.person_rounded,
               label: 'Validé par',
-              value: attendance!.invigilatorName!),
+              value: attendance!.supervisorName!),
           const SizedBox(height: 10),
         ],
-        if (attendance?.invigilatorEmail != null)
+        if (attendance?.supervisorEmail != null)
           _DetailRow(icon: Icons.email_rounded,
               label: 'Contact',
-              value: attendance!.invigilatorEmail!),
+              value: attendance!.supervisorEmail!),
 
         if (attendance == null) ...[
           Divider(color: ISPMColors.white.withOpacity(0.06)),

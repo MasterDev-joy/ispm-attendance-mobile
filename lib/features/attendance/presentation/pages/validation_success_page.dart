@@ -62,8 +62,8 @@ class _ValidationSuccessPageState extends State<ValidationSuccessPage>
         widget.validationData['message'] ?? 'Présence validée avec succès';
     final courseTitle =
         widget.validationData['course'] ?? '';
-    final timestamp  =
-    widget.validationData['timestamp'] as String?;
+    final rawScanTime = widget.validationData['attendance']?['scanTime'] as String?;
+    final timestamp = rawScanTime != null ? _formatScanTime(rawScanTime) : null;
 
     return Scaffold(
       backgroundColor: ISPMColors.black,
@@ -165,7 +165,6 @@ class _ValidationSuccessPageState extends State<ValidationSuccessPage>
                       TextButton(
                         onPressed: () {
                           Navigator.pop(context);
-                          Navigator.pop(context);
                         },
                         style: TextButton.styleFrom(
                             foregroundColor: ISPMColors.white.withOpacity(0.50)),
@@ -181,6 +180,23 @@ class _ValidationSuccessPageState extends State<ValidationSuccessPage>
         ],
       ),
     );
+  }
+
+  String _formatScanTime(String iso) {
+    try {
+      // 1. Le backend envoie : "2025-05-06T08:45:12.000Z"
+      final dt = DateTime.parse(iso).toLocal();
+      //    → convertit en heure locale Madagascar (UTC+3)
+
+      // 2. Formate en "08:45"
+      final h = dt.hour.toString().padLeft(2, '0');
+      final m = dt.minute.toString().padLeft(2, '0');
+      return '$h:$m';
+
+    } catch (_) {
+      // 3. Si le format est inattendu → affiche la chaîne brute
+      return iso;
+    }
   }
 }
 

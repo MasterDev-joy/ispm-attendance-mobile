@@ -8,6 +8,10 @@ import 'core/di/injection_container.dart' as di;
 import 'core/theme/app_theme.dart';
 
 // Blocs
+import 'features/admin/presentation/pages/courses_page.dart';
+import 'features/admin/presentation/pages/reports_page.dart';
+import 'features/admin/presentation/pages/settings_page.dart';
+import 'features/admin/presentation/pages/users_page.dart';
 import 'features/attendance/presentation/blocs/attendance_bloc.dart';
 import 'features/auth/presentation/blocs/auth_bloc.dart';
 import 'features/auth/presentation/blocs/auth_event.dart';
@@ -120,12 +124,12 @@ class ISPMApp extends StatelessWidget {
           '/stats':         (_) => const StatsPage(),
           '/notifications': (_) => const NotificationsPage(),
           // Admin — commenté jusqu'à création des pages
-          // '/users':    (_) => const UsersPage(),
-          // '/courses':  (_) => const CoursesPage(),
-          // '/reports':  (_) => const ReportsPage(),
-          // '/settings': (_) => const SettingsPage(),
+          '/users':         (_) => const UsersPage(),
+          '/courses':       (_) => const CoursesPage(),
+          '/reports':       (_) => const ReportsPage(),
+          '/settings':      (_) => const SettingsPage(),
           // Profile — commenté jusqu'à création
-          '/profile':  (_) => const ProfilePage(),
+          '/profile':       (_) => const ProfilePage(),
         },
 
         // ── Transitions fluides + routes avec arguments ─────────────

@@ -13,7 +13,8 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import '../../../attendance/data/repositories/attendance_repository_impl.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../schedule/presentation/blocs/schedule_bloc.dart';
 import '../../../schedule/presentation/blocs/schedule_event.dart';
@@ -32,7 +33,7 @@ import '../widgets/supervisor/supervisor_history_row.dart';
 
 const _kBlue = Color(0xFF378ADD);
 
-class SupervisorHomeBody extends StatelessWidget {
+class SupervisorHomeBody extends StatefulWidget  {
   final DateTime now;
   final AnimationController animController;
 
@@ -47,15 +48,36 @@ class SupervisorHomeBody extends StatelessWidget {
     this.lastScannedProfessorName,
   });
 
+  @override  // ← ajouter ceci
+  State<SupervisorHomeBody> createState() => _SupervisorHomeBodyState();
+}
+
+class _SupervisorHomeBodyState extends State<SupervisorHomeBody>{
+  Set<String> _validatedIds = {};
+  final _attendanceRepo = AttendanceRepositoryImpl(
+    secureStorage: const FlutterSecureStorage(),
+  );
+
+  @override
+  void initState() {
+    super.initState();
+    _loadValidatedIds();
+  }
+
+  Future<void> _loadValidatedIds() async {
+    final ids = await _attendanceRepo.getTodayValidatedCourseIds();
+    if (mounted) setState(() => _validatedIds = ids);
+  }
+
   // ── Helpers ────────────────────────────────────────────────────────────────
 
   String _fmt(DateTime dt) =>
       '${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
 
   bool _isCurrent(Course c) =>
-      now.isAfter(c.startTime) && now.isBefore(c.endTime);
-  bool _isPast(Course c) => now.isAfter(c.endTime);
-  bool _isUpcoming(Course c) => now.isBefore(c.startTime);
+      widget.now.isAfter(c.startTime) && widget.now.isBefore(c.endTime);
+  bool _isPast(Course c) => widget.now.isAfter(c.endTime);
+  bool _isUpcoming(Course c) => widget.now.isBefore(c.startTime);
 
   Course? _activeCourse(List<Course> courses) {
     try {
@@ -73,12 +95,12 @@ class SupervisorHomeBody extends StatelessWidget {
 
   double _progress(Course c) {
     final total = c.endTime.difference(c.startTime).inSeconds;
-    final elapsed = now.difference(c.startTime).inSeconds;
+    final elapsed = widget.now.difference(c.startTime).inSeconds;
     return (elapsed / total).clamp(0.0, 1.0);
   }
 
   String _countdown(Course c) {
-    final diff = c.startTime.difference(now);
+    final diff = c.startTime.difference(widget.now);
     if (diff.inMinutes < 1) return 'Imminent';
     if (diff.inHours >= 1) {
       final h = diff.inHours;
@@ -91,10 +113,9 @@ class SupervisorHomeBody extends StatelessWidget {
   ScanStatus _scanStatusFor(Course c) {
     if (_isCurrent(c)) return ScanStatus.scanning;
     if (_isPast(c)) {
-      // TODO: remplacer par vérification réelle via AttendanceRepository
-      // Pour l'instant : on simule "validé" si passé depuis > 30 min
-      final elapsed = now.difference(c.endTime).inMinutes;
-      return elapsed > 30 ? ScanStatus.validated : ScanStatus.uncovered;
+      return _validatedIds.contains(c.id)
+          ? ScanStatus.validated
+          : ScanStatus.uncovered;
     }
     return ScanStatus.pending;
   }
@@ -105,7 +126,7 @@ class SupervisorHomeBody extends StatelessWidget {
     final start = (0.08 * index).clamp(0.0, 0.9);
     return FadeTransition(
       opacity: CurvedAnimation(
-        parent: animController,
+        parent: widget.animController,
         curve: Interval(start, 1.0, curve: Curves.easeOut),
       ),
       child: SlideTransition(
@@ -113,7 +134,7 @@ class SupervisorHomeBody extends StatelessWidget {
           begin: const Offset(0, 0.12),
           end: Offset.zero,
         ).animate(CurvedAnimation(
-          parent: animController,
+          parent: widget.animController,
           curve: Interval(start, 1.0, curve: Curves.easeOutCubic),
         )),
         child: child,
@@ -224,7 +245,7 @@ class SupervisorHomeBody extends StatelessWidget {
                       SupervisorScanCard(
                         course: active,
                         // TODO: remplacer par le vrai nom du prof (via API)
-                        professorName: lastScannedProfessorName ?? 'Professeur',
+                        professorName: active.professorName.isNotEmpty ? active.professorName : 'Professeur',
                         progress: _progress(active),
                         formatTime: _fmt,
                         isValidated: false,
@@ -274,7 +295,7 @@ class SupervisorHomeBody extends StatelessWidget {
                         SupervisorHistoryRow(
                           courseTitle: e.value.title,
                           // TODO: remplacer par le vrai nom du prof depuis API
-                          professorName: 'Prof. ${e.value.fieldOfStudy}',
+                          professorName: e.value.professorName.isNotEmpty ? e.value.professorName : 'Professeur',
                           startTime: _fmt(e.value.startTime),
                           endTime: _fmt(e.value.endTime),
                           status: _scanStatusFor(e.value),

@@ -12,9 +12,14 @@
 // ScheduleBloc existant comme source représentative + des valeurs mock.
 // ─────────────────────────────────────────────────────────────────────────────
 
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:http/http.dart' as http;
 
+import '../../../../core/config/app_config.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../schedule/presentation/blocs/schedule_bloc.dart';
 import '../../../schedule/presentation/blocs/schedule_event.dart';
@@ -33,38 +38,63 @@ import '../widgets/admin/admin_action_card.dart';
 const _kAmber = Color(0xFFBA7517);
 const _kBlue  = Color(0xFF378ADD);
 
-class AdminHomeBody extends StatelessWidget {
+class AdminHomeBody extends StatefulWidget {
   final DateTime now;
   final AnimationController animController;
-
-  // TODO: Ces valeurs seront fournies par un AdminBloc une fois l'API prête
-  final int activeProfessors;
-  final int activeSupervisors;
 
   const AdminHomeBody({
     super.key,
     required this.now,
     required this.animController,
-    this.activeProfessors = 4,
-    this.activeSupervisors = 2,
   });
 
+  @override
+  State<AdminHomeBody> createState() => _AdminHomeBodyState();
+}
+
+class _AdminHomeBodyState extends State<AdminHomeBody> {
+  int _activeProfessors = 0;
+  int _activeSupervisors = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadCounts();
+  }
+
+  Future<void> _loadCounts() async {
+    try {
+      const storage = FlutterSecureStorage();
+      final token = await storage.read(key: 'jwt_token');
+      final res = await http.get(
+        Uri.parse('${AppConfig.baseUrl}/api/admin/reports'),
+        headers: {'Authorization': 'Bearer $token'},
+      );
+      if (res.statusCode == 200 && mounted) {
+        final data = jsonDecode(res.body);
+        setState(() {
+          _activeProfessors  = (data['totalProfessors']  ?? 0) as int;
+          _activeSupervisors = (data['totalSupervisors'] ?? 0) as int;
+        });
+      }
+    } catch (_) {}
+  }
   // ── Helpers ────────────────────────────────────────────────────────────────
 
   String _fmt(DateTime dt) =>
       '${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
 
   bool _isCurrent(Course c) =>
-      now.isAfter(c.startTime) && now.isBefore(c.endTime);
-  bool _isPast(Course c) => now.isAfter(c.endTime);
-  bool _isUpcoming(Course c) => now.isBefore(c.startTime);
+      widget.now.isAfter(c.startTime) && widget.now.isBefore(c.endTime);
+  bool _isPast(Course c) => widget.now.isAfter(c.endTime);
+  bool _isUpcoming(Course c) => widget.now.isBefore(c.startTime);
 
   CoverageStatus _coverageFor(Course c) {
     if (_isUpcoming(c)) return CoverageStatus.upcoming;
     if (_isCurrent(c))  return CoverageStatus.active;
     // TODO: vérifier via AttendanceRepository si le cours a été scanné
     // Mock : simulé validé si passé depuis > 30 min
-    final elapsed = now.difference(c.endTime).inMinutes;
+    final elapsed = widget.now.difference(c.endTime).inMinutes;
     return elapsed > 30 ? CoverageStatus.covered : CoverageStatus.uncovered;
   }
 
@@ -74,7 +104,7 @@ class AdminHomeBody extends StatelessWidget {
     final start = (0.07 * index).clamp(0.0, 0.9);
     return FadeTransition(
       opacity: CurvedAnimation(
-        parent: animController,
+        parent: widget.animController,
         curve: Interval(start, 1.0, curve: Curves.easeOut),
       ),
       child: SlideTransition(
@@ -82,7 +112,7 @@ class AdminHomeBody extends StatelessWidget {
           begin: const Offset(0, 0.12),
           end: Offset.zero,
         ).animate(CurvedAnimation(
-          parent: animController,
+          parent: widget.animController,
           curve: Interval(start, 1.0, curve: Curves.easeOutCubic),
         )),
         child: child,
@@ -132,28 +162,28 @@ class AdminHomeBody extends StatelessWidget {
             isHighlighted: coveredCourses > 0,
           ),
           StatCardData(
-            value: '$activeProfessors',
+            value: '$_activeProfessors',
             label: 'Profs actifs',
             icon: Icons.menu_book_rounded,
             accentColor: _kAmber,
           ),
           StatCardData(
-            value: '$activeSupervisors',
+            value: '$_activeSupervisors',
             label: 'Superviseurs actifs',
             icon: Icons.qr_code_scanner_rounded,
             accentColor: _kBlue,
-            isHighlighted: activeSupervisors > 0,
+            isHighlighted: _activeSupervisors > 0,
           ),
         ];
 
         // ── Trier les cours : actifs → passés → à venir ────────────
         final sortedCourses = [...courses]..sort((a, b) {
-          int _priority(Course c) {
+          int priority(Course c) {
             if (_isCurrent(c))  return 0;
             if (_isPast(c))     return 1;
             return 2;
           }
-          final p = _priority(a).compareTo(_priority(b));
+          final p = priority(a).compareTo(priority(b));
           return p != 0 ? p : a.startTime.compareTo(b.startTime);
         });
 
@@ -280,7 +310,7 @@ class AdminHomeBody extends StatelessWidget {
         title: 'Utilisateurs',
         subtitle: 'Gérer profs & superviseurs',
         route: '/users',
-        badge: '${activeProfessors + activeSupervisors}',
+        badge: '${_activeProfessors + _activeSupervisors}',
       ),
       AdminActionItem(
         icon: Icons.calendar_month_rounded,

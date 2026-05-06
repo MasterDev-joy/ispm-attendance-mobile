@@ -7,8 +7,10 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 import '../../../../core/theme/app_theme.dart';
+import '../../../attendance/data/repositories/attendance_repository_impl.dart';
 import '../../../schedule/presentation/blocs/schedule_bloc.dart';
 import '../../../schedule/presentation/blocs/schedule_event.dart';
 import '../../../schedule/presentation/blocs/schedule_state.dart';
@@ -24,7 +26,7 @@ import '../widgets/shared/home_alert_card.dart';
 import '../widgets/professor/professor_current_course_card.dart';
 import '../widgets/professor/professor_next_course_card.dart';
 
-class ProfessorHomeBody extends StatelessWidget {
+class ProfessorHomeBody extends StatefulWidget {
   final DateTime now;
   final AnimationController animController;
 
@@ -33,16 +35,35 @@ class ProfessorHomeBody extends StatelessWidget {
     required this.now,
     required this.animController,
   });
+  @override
+  State<ProfessorHomeBody> createState() => _ProfessorHomeBodyState();
+}
 
+class _ProfessorHomeBodyState extends State<ProfessorHomeBody>{
+  Set<String> _validatedIds = {}; // IDs des cours validés
+  final _attendanceRepo = AttendanceRepositoryImpl(
+    secureStorage: const FlutterSecureStorage(),
+  );
+
+  Future<void> _loadValidatedIds() async {
+    final ids = await _attendanceRepo.getTodayValidatedCourseIds();
+    if (mounted) setState(() => _validatedIds = ids);
+  }
+
+  @override
+  void initState() {
+    // TODO: implement initState
+    super.initState();
+    _loadValidatedIds();
+  }
   // ── Helpers temps ──────────────────────────────────────────────────────────
-
   String _formatTime(DateTime dt) =>
       '${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
 
   bool _isCurrent(Course c) =>
-      now.isAfter(c.startTime) && now.isBefore(c.endTime);
-  bool _isPast(Course c) => now.isAfter(c.endTime);
-  bool _isUpcoming(Course c) => now.isBefore(c.startTime);
+      widget.now.isAfter(c.startTime) && widget.now.isBefore(c.endTime);
+  bool _isPast(Course c) => widget.now.isAfter(c.endTime);
+  bool _isUpcoming(Course c) => widget.now.isBefore(c.startTime);
 
   Course? _currentCourse(List<Course> courses) {
     try {
@@ -60,12 +81,12 @@ class ProfessorHomeBody extends StatelessWidget {
 
   double _progress(Course c) {
     final total = c.endTime.difference(c.startTime).inSeconds;
-    final elapsed = now.difference(c.startTime).inSeconds;
+    final elapsed = widget.now.difference(c.startTime).inSeconds;
     return (elapsed / total).clamp(0.0, 1.0);
   }
 
   String _countdown(Course c) {
-    final diff = c.startTime.difference(now);
+    final diff = c.startTime.difference(widget.now);
     if (diff.inMinutes < 1) return 'Imminent';
     if (diff.inHours >= 1) {
       final h = diff.inHours;
@@ -87,7 +108,7 @@ class ProfessorHomeBody extends StatelessWidget {
     final start = (0.08 * index).clamp(0.0, 0.9);
     return FadeTransition(
       opacity: CurvedAnimation(
-        parent: animController,
+        parent: widget.animController,
         curve: Interval(start, 1.0, curve: Curves.easeOut),
       ),
       child: SlideTransition(
@@ -95,7 +116,7 @@ class ProfessorHomeBody extends StatelessWidget {
           begin: const Offset(0, 0.12),
           end: Offset.zero,
         ).animate(CurvedAnimation(
-          parent: animController,
+          parent: widget.animController,
           curve: Interval(start, 1.0, curve: Curves.easeOutCubic),
         )),
         child: child,
@@ -122,8 +143,7 @@ class ProfessorHomeBody extends StatelessWidget {
         final remaining = courses.length -
             passed -
             (current != null ? 1 : 0);
-        final validated =
-            courses.where((c) => _isPast(c)).length; // proxy validés
+        final validated = courses.where((c) => _validatedIds.contains(c.id)).length;
 
         // ── Stats grid ─────────────────────────────────────────────
         final stats = [

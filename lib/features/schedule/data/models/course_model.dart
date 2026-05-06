@@ -5,6 +5,7 @@ class CourseModel extends Course {
     required super.id,
     required super.title,
     required super.fieldOfStudy,
+    required super.professorName,
     required super.startTime,
     required super.endTime,
   });
@@ -15,6 +16,7 @@ class CourseModel extends Course {
       id: json['id'],
       title: json['title'],
       fieldOfStudy: json['field_of_study'],
+      professorName: json['professor'] != null ? '${json['professor']['firstName']} ${json['professor']['lastName']}' : 'Professeur inconnu',
       startTime: DateTime.parse(json['startTime']),
       endTime: DateTime.parse(json['endTime']),
     );

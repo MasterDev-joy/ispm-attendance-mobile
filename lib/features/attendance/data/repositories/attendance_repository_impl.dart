@@ -48,4 +48,20 @@ class AttendanceRepositoryImpl implements AttendanceRepository {
       throw Exception(errorData['error'] ?? 'Erreur lors de la validation');
     }
   }
+
+  Future<Set<String>> getTodayValidatedCourseIds() async {
+    final jwtToken = await secureStorage.read(key: 'jwt_token');
+    if (jwtToken == null) return {};
+    try {
+      final response = await http.get(
+        Uri.parse('${AppConfig.baseUrl}/api/attendance/today'),
+        headers: {'Authorization': 'Bearer $jwtToken'},
+      );
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        return Set<String>.from(data['validatedCourseIds']);
+      }
+    } catch (_) {}
+    return {};
+  }
 }

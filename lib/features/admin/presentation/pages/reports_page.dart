@@ -135,12 +135,16 @@ class _ReportsPageState extends State<ReportsPage>
         });
         _animCtrl.forward(from: 0);
       } else {
-        // Fallback mock pour dev
-        setState(() { _report = _GlobalReport.mock(); _loading = false; });
+        setState(() {
+          _error = 'Impossible de charger les rapports (code ${res.statusCode})';
+          _loading = false;
+        });
       }
     } catch (_) {
-      // Fallback mock si pas d'API
-      setState(() { _report = _GlobalReport.mock(); _loading = false; });
+      setState(() {
+        _error = 'Serveur inaccessible. Vérifiez votre connexion.';
+        _loading = false;
+      });
     }
   }
 

@@ -184,7 +184,9 @@ class _SettingsPageState extends State<SettingsPage>
                 onChanged: (v) {
                   setState(() => _qrRotationEnabled = v);
                   HapticFeedback.selectionClick();
+                  _showSnack('Ce paramètre sera persisté dans une prochaine version', _kAmber); // ← ajouter
                 },
+
               )),
 
               _stagger(4, _SettingsSlider(
@@ -194,7 +196,10 @@ class _SettingsPageState extends State<SettingsPage>
                 min: 5, max: 60, divisions: 11,
                 suffix: 'sec',
                 accent: _kAmber,
-                onChanged: (v) => setState(() => _qrDurationSec = v.round()),
+                onChanged: (v) {
+                  setState(() => _qrDurationSec = v.round());
+                  _showSnack('Ce paramètre sera persisté dans une prochaine version', _kAmber); // ← ajouter
+                },
               )),
 
               const SizedBox(height: 24),
@@ -212,6 +217,7 @@ class _SettingsPageState extends State<SettingsPage>
                 onChanged: (v) {
                   setState(() => _requireBiometrics = v);
                   HapticFeedback.selectionClick();
+                  _showSnack('Ce paramètre sera persisté dans une prochaine version', _kAmber); // ← ajouter
                 },
               )),
 
@@ -241,8 +247,10 @@ class _SettingsPageState extends State<SettingsPage>
                   setState(() => _maintenanceMode = v);
                   HapticFeedback.mediumImpact();
                   _showSnack(
-                      v ? 'Mode maintenance activé' : 'Mode maintenance désactivé',
-                      v ? ISPMColors.error : ISPMColors.green);
+                    v ? 'Mode maintenance activé (non persisté — redémarrez le serveur)'
+                        : 'Mode maintenance désactivé',
+                    v ? ISPMColors.error : ISPMColors.green,
+                  );
                 },
               )),
 

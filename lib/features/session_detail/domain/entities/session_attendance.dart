@@ -13,18 +13,18 @@ class SessionAttendance {
   /// Heure à laquelle le QR a été scanné (null si absent/non scanné)
   final DateTime? scanTime;
 
-  /// Nom du surveillant (invigilator) qui a scanné
-  final String? invigilatorName;
+  /// Nom du surveillant (supervisor) qui a scanné
+  final String? supervisorName;
 
   /// Email du surveillant
-  final String? invigilatorEmail;
+  final String? supervisorEmail;
 
   const SessionAttendance({
     required this.id,
     required this.status,
     this.scanTime,
-    this.invigilatorName,
-    this.invigilatorEmail,
+    this.supervisorName,
+    this.supervisorEmail,
   });
 
   factory SessionAttendance.fromJson(Map<String, dynamic> json) {
@@ -46,8 +46,10 @@ class SessionAttendance {
       scanTime: json['scanTime'] != null
           ? DateTime.tryParse(json['scanTime'] as String)
           : null,
-      invigilatorName: "${json['invigilator']?['firstName']} ${json['invigilator']?['lastName']}",
-      invigilatorEmail: json['invigilator']?['email'] as String?,
+      supervisorName: json['supervisor'] != null
+          ? '${json['supervisor']['firstName']} ${json['supervisor']['lastName']}'
+          : 'Superviseur inconnu',
+      supervisorEmail: json['supervisor']?['email'] as String?,
     );
   }
 }
