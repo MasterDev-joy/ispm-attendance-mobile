@@ -11,7 +11,6 @@ part of 'attendance_result.dart';
 
 // dart format off
 T _$identity<T>(T value) => value;
-
 /// @nodoc
 mixin _$AttendanceResult {
 
@@ -22,8 +21,6 @@ mixin _$AttendanceResult {
 @pragma('vm:prefer-inline')
 $AttendanceResultCopyWith<AttendanceResult> get copyWith => _$AttendanceResultCopyWithImpl<AttendanceResult>(this as AttendanceResult, _$identity);
 
-  /// Serializes this AttendanceResult to a JSON map.
-  Map<String, dynamic> toJson();
 
 
 @override
@@ -31,7 +28,7 @@ bool operator ==(Object other) {
   return identical(this, other) || (other.runtimeType == runtimeType&&other is AttendanceResult&&(identical(other.professorName, professorName) || other.professorName == professorName)&&(identical(other.courseTitle, courseTitle) || other.courseTitle == courseTitle)&&(identical(other.professorPhoto, professorPhoto) || other.professorPhoto == professorPhoto));
 }
 
-@JsonKey(includeFromJson: false, includeToJson: false)
+
 @override
 int get hashCode => Object.hash(runtimeType,professorName,courseTitle,professorPhoto);
 
@@ -208,11 +205,11 @@ return $default(_that.professorName,_that.courseTitle,_that.professorPhoto);case
 }
 
 /// @nodoc
-@JsonSerializable()
+
 
 class _AttendanceResult implements AttendanceResult {
   const _AttendanceResult({required this.professorName, required this.courseTitle, this.professorPhoto});
-  factory _AttendanceResult.fromJson(Map<String, dynamic> json) => _$AttendanceResultFromJson(json);
+  
 
 @override final  String professorName;
 @override final  String courseTitle;
@@ -224,17 +221,14 @@ class _AttendanceResult implements AttendanceResult {
 @pragma('vm:prefer-inline')
 _$AttendanceResultCopyWith<_AttendanceResult> get copyWith => __$AttendanceResultCopyWithImpl<_AttendanceResult>(this, _$identity);
 
-@override
-Map<String, dynamic> toJson() {
-  return _$AttendanceResultToJson(this, );
-}
+
 
 @override
 bool operator ==(Object other) {
   return identical(this, other) || (other.runtimeType == runtimeType&&other is _AttendanceResult&&(identical(other.professorName, professorName) || other.professorName == professorName)&&(identical(other.courseTitle, courseTitle) || other.courseTitle == courseTitle)&&(identical(other.professorPhoto, professorPhoto) || other.professorPhoto == professorPhoto));
 }
 
-@JsonKey(includeFromJson: false, includeToJson: false)
+
 @override
 int get hashCode => Object.hash(runtimeType,professorName,courseTitle,professorPhoto);
 

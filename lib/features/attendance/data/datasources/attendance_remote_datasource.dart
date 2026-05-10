@@ -2,10 +2,10 @@
 import 'package:dio/dio.dart';
 import 'package:injectable/injectable.dart';
 import '../../../../../core/network/dio_client.dart';
-import '../../domain/entities/attendance_result.dart';
+import '../../data/models/attendance_result_model.dart';
 
 abstract class AttendanceRemoteDataSource {
-  Future<AttendanceResult> validateAttendance({
+  Future<AttendanceResultModel> validateAttendance({
     required String token,
     required String professorId,
     required String courseId,
@@ -20,7 +20,7 @@ class AttendanceRemoteDataSourceImpl implements AttendanceRemoteDataSource {
   AttendanceRemoteDataSourceImpl(DioClient client) : _dio = client.dio;
 
   @override
-  Future<AttendanceResult> validateAttendance({
+  Future<AttendanceResultModel> validateAttendance({
     required String token,
     required String professorId,
     required String courseId,
@@ -29,15 +29,14 @@ class AttendanceRemoteDataSourceImpl implements AttendanceRemoteDataSource {
       '/api/attendance/validate',
       data: {'token': token, 'professorId': professorId, 'courseId': courseId},
     );
-    return AttendanceResult.fromJson(res.data as Map<String, dynamic>);
+    return AttendanceResultModel.fromJson(res.data as Map<String, dynamic>);
   }
 
   @override
   Future<Set<String>> getTodayValidatedCourseIds() async {
     try {
       final res = await _dio.get('/api/attendance/today');
-      return Set<String>.from(
-          (res.data['validatedCourseIds'] as List? ?? []));
+      return Set<String>.from((res.data['validatedCourseIds'] as List? ?? []));
     } catch (_) {
       return {};
     }

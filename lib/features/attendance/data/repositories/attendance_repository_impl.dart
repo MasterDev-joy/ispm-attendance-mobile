@@ -25,7 +25,7 @@ class AttendanceRepositoryImpl implements AttendanceRepository {
         professorId: professorId,
         courseId: courseId,
       );
-      return Right(result);
+      return Right(result.toEntity());
     } on DioException catch (e) {
       return Left(mapDioFailure(e));
     } catch (e) {
