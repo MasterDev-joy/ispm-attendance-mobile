@@ -46,16 +46,16 @@ import '../../features/stats/domain/usecases/get_stats.dart';
 import '../../features/stats/presentation/blocs/stats_bloc.dart';
 
 // ── Admin / Reports ───────────────────────────────────────────────────────────
-import '../../features/admin/data/datasources/admin_remote_datasource.dart';
-import '../../features/admin/data/repositories/admin_repositories_impl.dart';
-import '../../features/admin/domain/repositories/report_repository.dart';
-import '../../features/admin/domain/usecases/reports/report_usecases.dart';
-import '../../features/admin/presentation/blocs/reports/report_bloc.dart';
+import '../../features/reports/data/datasources/report_remote_datasource.dart';
+import '../../features/reports/data/repositories/report_repositories_impl.dart';
+import '../../features/reports/domain/repositories/report_repository.dart';
+import '../../features/reports/domain/usecases//report_usecases.dart';
+import '../../features/reports/presentation/blocs/report_bloc.dart';
 
 // ── Admin / Users ─────────────────────────────────────────────────────────────
-import '../../features/admin/domain/repositories/user_repository.dart';
-import '../../features/admin/domain/usecases/users/user_usecases.dart';
-import '../../features/admin/presentation/blocs/users/user_bloc.dart';
+import '../../features/users_management/domain/repositories/user_repository.dart';
+import '../../features/users_management/domain/usecases/user_usecases.dart';
+import '../../features/users_management/presentation/blocs/user_bloc.dart';
 
 final sl = GetIt.instance;
 
