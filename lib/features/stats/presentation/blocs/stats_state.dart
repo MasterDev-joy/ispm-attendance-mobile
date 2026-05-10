@@ -1,29 +1,13 @@
 // lib/features/stats/presentation/blocs/stats_state.dart
-import 'package:equatable/equatable.dart';
-import '../../domain/entities/stats_data.dart';
-import 'stats_event.dart';
+part of 'stats_bloc.dart';
 
-abstract class StatsState extends Equatable {
-  const StatsState();
-  @override
-  List<Object?> get props => [];
-}
-
-class StatsInitial extends StatsState {}
-
-class StatsLoading extends StatsState {}
-
-class StatsLoaded extends StatsState {
-  final GlobalStats data;
-  final StatsPeriod period;
-  const StatsLoaded({required this.data, required this.period});
-  @override
-  List<Object?> get props => [data, period];
-}
-
-class StatsError extends StatsState {
-  final String message;
-  const StatsError(this.message);
-  @override
-  List<Object?> get props => [message];
+@freezed
+class StatsState with _$StatsState {
+  const factory StatsState.initial() = _Initial;
+  const factory StatsState.loading() = _Loading;
+  const factory StatsState.loaded({
+    required GlobalStats data,
+    required StatsPeriod period,
+  }) = _Loaded;
+  const factory StatsState.error(String message) = _Error;
 }

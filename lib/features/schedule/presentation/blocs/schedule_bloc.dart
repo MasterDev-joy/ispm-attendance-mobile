@@ -1,26 +1,38 @@
+// lib/features/schedule/presentation/blocs/schedule_bloc.dart
 import 'package:flutter_bloc/flutter_bloc.dart';
-import '../../data/repositories/schedule_repository_impl.dart';
-import 'schedule_event.dart';
-import 'schedule_state.dart';
+import 'package:freezed_annotation/freezed_annotation.dart';
+import 'package:injectable/injectable.dart';
+import '../../domain/entities/course.dart';
+import '../../domain/usecases/get_my_courses.dart';
+import '../../../../../core/error/failures.dart';
 
+part 'schedule_bloc.freezed.dart';
+part 'schedule_event.dart';
+part 'schedule_state.dart';
+
+@injectable
 class ScheduleBloc extends Bloc<ScheduleEvent, ScheduleState> {
-  final ScheduleRepositoryImpl _repository;
+  final GetMyCourses _getMyCourses;
 
-  ScheduleBloc({required ScheduleRepositoryImpl repository})
-      : _repository = repository,
-        super(ScheduleInitial()) {
-    on<LoadScheduleEvent>(_onLoadSchedule);
+  ScheduleBloc(this._getMyCourses) : super(const ScheduleState.initial()) {
+    on<_Load>(_onLoad);
   }
 
-  Future<void> _onLoadSchedule(
-      LoadScheduleEvent event, Emitter<ScheduleState> emit) async {
-    emit(ScheduleLoading());
-    try {
-      // On appelle l'API Node.js
-      final courses = await _repository.getMyCourses();
-      emit(ScheduleLoaded(courses));
-    } catch (e) {
-      emit(ScheduleError(e.toString().replaceAll('Exception: ', '')));
-    }
+  Future<void> _onLoad(_Load _, Emitter<ScheduleState> emit) async {
+    emit(const ScheduleState.loading());
+    final result = await _getMyCourses();
+    result.fold(
+      (f) => emit(ScheduleState.error(_msg(f))),
+      (courses) => emit(ScheduleState.loaded(courses)),
+    );
   }
+
+  String _msg(Failure f) => f.when(
+    server: (m) => m,
+    network: () => 'Pas de connexion réseau',
+    unauthorized: () => 'Session expirée',
+    forbidden: () => 'Accès refusé',
+    cache: (m) => m,
+    unknown: (m) => m,
+  );
 }

@@ -1,24 +1,34 @@
+// lib/features/schedule/data/models/course_model.dart
+import 'package:freezed_annotation/freezed_annotation.dart';
 import '../../domain/entities/course.dart';
 
-class CourseModel extends Course {
-  CourseModel({
-    required super.id,
-    required super.title,
-    required super.fieldOfStudy,
-    required super.professorName,
-    required super.startTime,
-    required super.endTime,
-  });
+part 'course_model.freezed.dart';
+part 'course_model.g.dart';
 
-  // Convertit le JSON du backend Node.js en objet Dart
-  factory CourseModel.fromJson(Map<String, dynamic> json) {
-    return CourseModel(
-      id: json['id'],
-      title: json['title'],
-      fieldOfStudy: json['field_of_study'],
-      professorName: json['professor'] != null ? '${json['professor']['firstName']} ${json['professor']['lastName']}' : 'Professeur inconnu',
-      startTime: DateTime.parse(json['startTime']),
-      endTime: DateTime.parse(json['endTime']),
-    );
-  }
+@freezed
+abstract class CourseModel with _$CourseModel {
+  const CourseModel._();
+
+  const factory CourseModel({
+    required String id,
+    required String title,
+    @JsonKey(name: 'field_of_study') required String fieldOfStudy,
+    required String startTime,
+    required String endTime,
+    Map<String, dynamic>? professor,
+  }) = _CourseModel;
+
+  factory CourseModel.fromJson(Map<String, dynamic> json) =>
+      _$CourseModelFromJson(json);
+
+  Course toEntity() => Course(
+    id: id,
+    title: title,
+    fieldOfStudy: fieldOfStudy,
+    professorName: professor != null
+        ? '${professor!['firstName']} ${professor!['lastName']}'
+        : 'Professeur inconnu',
+    startTime: DateTime.parse(startTime),
+    endTime: DateTime.parse(endTime),
+  );
 }

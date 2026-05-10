@@ -1,22 +1,16 @@
-import 'package:equatable/equatable.dart';
+// lib/features/auth/domain/entities/user.dart
+import 'package:freezed_annotation/freezed_annotation.dart';
 
-class User extends Equatable {
-  final String id;
-  final String email;
-  final String name;
-  final String role;
-  final bool isFirstLogin;
-  final bool hasBiometricsEnabled;
+part 'user.freezed.dart';
 
-  const User({
-    required this.id,
-    required this.email,
-    required this.name,
-    required this.role,
-    this.isFirstLogin = false,
-    this.hasBiometricsEnabled = false,
-  });
-
-  @override
-  List<Object?> get props => [id, email, name, role, isFirstLogin, hasBiometricsEnabled];
+@freezed
+abstract class User with _$User {
+  const factory User({
+    required String id,
+    required String email,
+    required String name,
+    required String role,
+    @Default(false) bool isFirstLogin,
+    @Default(false) bool hasBiometricsEnabled,
+  }) = _User;
 }

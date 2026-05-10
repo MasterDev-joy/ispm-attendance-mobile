@@ -1,30 +1,11 @@
-import 'package:equatable/equatable.dart';
+// lib/features/attendance/presentation/blocs/attendance_state.dart
+part of 'attendance_bloc.dart';
 
-abstract class AttendanceState extends Equatable {
-  const AttendanceState();
-
-  @override
-  List<Object?> get props => [];
-}
-
-class AttendanceInitial extends AttendanceState {}
-
-class AttendanceLoading extends AttendanceState {}
-
-class AttendanceValidationSuccess extends AttendanceState {
-  final Map<String, dynamic> validationData; // Contient le nom du prof renvoyé par le backend
-
-  const AttendanceValidationSuccess(this.validationData);
-
-  @override
-  List<Object?> get props => [validationData];
-}
-
-class AttendanceError extends AttendanceState {
-  final String message;
-
-  const AttendanceError(this.message);
-
-  @override
-  List<Object?> get props => [message];
+@freezed
+class AttendanceState with _$AttendanceState {
+  const factory AttendanceState.initial() = _Initial;
+  const factory AttendanceState.loading() = _Loading;
+  // Map<String,dynamic> remplacé par l'entity typée AttendanceResult
+  const factory AttendanceState.success(AttendanceResult result) = _Success;
+  const factory AttendanceState.error(String message) = _Error;
 }

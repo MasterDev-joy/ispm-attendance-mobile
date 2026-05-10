@@ -8,8 +8,6 @@ import '../../../../core/presentation/widgets/ispm_header.dart';
 import '../../../../core/presentation/widgets/ispm_mesh_grid.dart';
 import '../../../../core/presentation/widgets/ispm_text_field.dart';
 import '../blocs/auth_bloc.dart';
-import '../blocs/auth_event.dart';
-import '../blocs/auth_state.dart';
 import '../../../../core/theme/app_theme.dart';
 
 class LoginPage extends StatefulWidget {
@@ -47,6 +45,7 @@ class _LoginPageState extends State<LoginPage>
     _emailController.dispose();
     _passwordController.dispose();
     _animController.dispose();
+    _errorTimer?.cancel();
     super.dispose();
   }
 
@@ -70,31 +69,49 @@ class _LoginPageState extends State<LoginPage>
     return FadeTransition(
       opacity: CurvedAnimation(
         parent: _animController,
-        curve: Interval((0.1 * index).clamp(0, 1.0), 1.0,
-            curve: Curves.easeOut),
+        curve: Interval(
+          (0.1 * index).clamp(0, 1.0),
+          1.0,
+          curve: Curves.easeOut,
+        ),
       ),
       child: SlideTransition(
-        position: Tween<Offset>(
-          begin: const Offset(0, 0.25),
-          end: Offset.zero,
-        ).animate(CurvedAnimation(
-          parent: _animController,
-          curve: Interval((0.1 * index).clamp(0, 1.0), 1.0,
-              curve: Curves.easeOutCubic),
-        )),
+        position: Tween<Offset>(begin: const Offset(0, 0.25), end: Offset.zero)
+            .animate(
+              CurvedAnimation(
+                parent: _animController,
+                curve: Interval(
+                  (0.1 * index).clamp(0, 1.0),
+                  1.0,
+                  curve: Curves.easeOutCubic,
+                ),
+              ),
+            ),
         child: child,
       ),
     );
   }
 
+  // ── Envoi de l'event freezed ──────────────────────────────────────────────
+  void _onSubmit(BuildContext context) {
+    _triggerErrors();
+    if (_formKey.currentState!.validate()) {
+      context.read<AuthBloc>().add(
+        AuthEvent.loginRequested(
+          _emailController.text.trim(),
+          _passwordController.text.trim(),
+        ),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      // Utilise ISPMColors.black pour un fond plus profond que grey900
       backgroundColor: ISPMColors.black,
       body: Stack(
         children: [
-          // ── Blob vert haut-gauche ──────────────────────────
+          // ── Blobs de fond ─────────────────────────────────────────────────
           Positioned(
             top: -100,
             left: -60,
@@ -104,7 +121,6 @@ class _LoginPageState extends State<LoginPage>
               secondaryColor: ISPMColors.greenDark.withOpacity(0.07),
             ),
           ),
-          // ── Blob vert bas-droite ───────────────────────────
           Positioned(
             bottom: -60,
             right: -40,
@@ -114,41 +130,52 @@ class _LoginPageState extends State<LoginPage>
               secondaryColor: ISPMColors.greenDark.withOpacity(0.07),
             ),
           ),
-          // ── Grille mesh SVG CustomPaint ────────────────────
           const Positioned.fill(child: IspmMeshGrid()),
 
           SafeArea(
             child: Center(
               child: SingleChildScrollView(
                 padding: const EdgeInsets.symmetric(horizontal: 28),
+                // ── BlocConsumer avec états freezed ───────────────────────
                 child: BlocConsumer<AuthBloc, AuthState>(
                   listener: (context, state) {
-                    if (state is AuthError) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text(state.message),
-                          backgroundColor: ISPMColors.error,
-                          behavior: SnackBarBehavior.floating,
-                          shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12)),
-                        ),
-                      );
-                    } else if (state is AuthAuthenticated) {
-                      Navigator.of(context).pushReplacementNamed('/home');
-                    } else if (state is AuthRequiresPasswordChange) {
-                      Navigator.of(context).pushReplacementNamed(
-                        '/change-password',
-                        arguments: state.user,
-                      );
-                    }
+                    state.whenOrNull(
+                      // Erreur → SnackBar
+                      error: (message) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(message),
+                            backgroundColor: ISPMColors.error,
+                            behavior: SnackBarBehavior.floating,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                        );
+                      },
+                      // Connecté → home
+                      authenticated: (_) {
+                        Navigator.of(context).pushReplacementNamed('/home');
+                      },
+                      // Première connexion → changement de mdp
+                      requiresPasswordChange: (user) {
+                        Navigator.of(context).pushReplacementNamed(
+                          '/change-password',
+                          arguments: user,
+                        );
+                      },
+                    );
                   },
                   builder: (context, state) {
+                    // isLoading : vrai si l'état courant est loading
+                    final isLoading =
+                        state.whenOrNull(loading: () => true) ?? false;
+
                     return Form(
                       key: _formKey,
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          // Logo + titre + sous-titre
                           _animatedItem(
                             0,
                             const IspmHeader(
@@ -157,12 +184,11 @@ class _LoginPageState extends State<LoginPage>
                             ),
                           ),
 
-                          // Séparateur labelisé
                           _animatedItem(
-                              1,
-                              _SectionDivider(label: 'Identifiants')),
+                            1,
+                            _SectionDivider(label: 'Identifiants'),
+                          ),
 
-                          // Champ email
                           _animatedItem(
                             2,
                             IspmTextField(
@@ -174,11 +200,10 @@ class _LoginPageState extends State<LoginPage>
                               showError: _showEmailError,
                               errorText: 'Email requis',
                               validator: (v) =>
-                              v!.isEmpty ? 'Email requis' : null,
+                                  v!.isEmpty ? 'Email requis' : null,
                             ),
                           ),
 
-                          // Champ mot de passe
                           _animatedItem(
                             3,
                             IspmTextField(
@@ -198,14 +223,14 @@ class _LoginPageState extends State<LoginPage>
                                   size: 20,
                                 ),
                                 onPressed: () => setState(
-                                        () => _obscurePassword = !_obscurePassword),
+                                  () => _obscurePassword = !_obscurePassword,
+                                ),
                               ),
                               validator: (v) =>
-                              v!.isEmpty ? 'Mot de passe requis' : null,
+                                  v!.isEmpty ? 'Mot de passe requis' : null,
                             ),
                           ),
 
-                          // Mot de passe oublié
                           _animatedItem(
                             4,
                             Align(
@@ -213,10 +238,13 @@ class _LoginPageState extends State<LoginPage>
                               child: TextButton(
                                 onPressed: () {},
                                 style: TextButton.styleFrom(
-                                  foregroundColor:
-                                  ISPMColors.green.withOpacity(0.8),
+                                  foregroundColor: ISPMColors.green.withOpacity(
+                                    0.8,
+                                  ),
                                   padding: const EdgeInsets.symmetric(
-                                      horizontal: 4, vertical: 4),
+                                    horizontal: 4,
+                                    vertical: 4,
+                                  ),
                                 ),
                                 child: const Text(
                                   'Mot de passe oublié ?',
@@ -232,7 +260,6 @@ class _LoginPageState extends State<LoginPage>
 
                           const SizedBox(height: 24),
 
-                          // Bouton connexion
                           _animatedItem(
                             5,
                             SizedBox(
@@ -240,25 +267,14 @@ class _LoginPageState extends State<LoginPage>
                               height: 54,
                               child: IspmButton(
                                 text: 'CONNEXION',
-                                isLoading: state is AuthLoading,
-                                onPressed: (){
-                                  _triggerErrors();
-                                  if (_formKey.currentState!.validate()) {
-                                    context.read<AuthBloc>().add(
-                                      LoginRequestedEvent(
-                                        _emailController.text.trim(),
-                                        _passwordController.text.trim(),
-                                      ),
-                                    );
-                                  }
-                                },
+                                isLoading: isLoading,
+                                onPressed: () => _onSubmit(context),
                               ),
                             ),
                           ),
 
                           const SizedBox(height: 40),
 
-                          // Footer
                           _animatedItem(
                             6,
                             Text(
@@ -285,9 +301,10 @@ class _LoginPageState extends State<LoginPage>
   }
 }
 
-// ─────────────────────────────────────────────────
-//  Séparateur avec label centré
-// ─────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
+// Séparateur avec label centré
+// ─────────────────────────────────────────────────────────────────────────────
+
 class _SectionDivider extends StatelessWidget {
   final String label;
   const _SectionDivider({required this.label});

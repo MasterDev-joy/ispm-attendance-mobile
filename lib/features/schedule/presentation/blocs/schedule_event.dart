@@ -1,11 +1,7 @@
-import 'package:equatable/equatable.dart';
+// lib/features/schedule/presentation/blocs/schedule_event.dart
+part of 'schedule_bloc.dart';
 
-abstract class ScheduleEvent extends Equatable {
-  const ScheduleEvent();
-
-  @override
-  List<Object> get props => [];
+@freezed
+class ScheduleEvent with _$ScheduleEvent {
+  const factory ScheduleEvent.load() = _Load;
 }
-
-// L'événement déclenché à l'ouverture de la page
-class LoadScheduleEvent extends ScheduleEvent {}

@@ -8,16 +8,13 @@ import 'core/di/injection_container.dart' as di;
 import 'core/theme/app_theme.dart';
 
 // Blocs
-import 'features/admin/presentation/pages/courses_page.dart';
-import 'features/admin/presentation/pages/reports_page.dart';
-import 'features/admin/presentation/pages/settings_page.dart';
-import 'features/admin/presentation/pages/users_page.dart';
 import 'features/attendance/presentation/blocs/attendance_bloc.dart';
 import 'features/auth/presentation/blocs/auth_bloc.dart';
-import 'features/auth/presentation/blocs/auth_event.dart';
 import 'features/notifications/presentation/blocs/notification_bloc.dart';
-import 'features/notifications/presentation/blocs/notification_event.dart';
 import 'features/schedule/presentation/blocs/schedule_bloc.dart';
+import 'features/courses_management/presentation/pages/courses_page.dart';
+import 'features/settings/presentation/pages/settings_page.dart';
+import 'features/reports/presentation/blocs/report_bloc.dart';
 import 'features/stats/presentation/blocs/stats_bloc.dart';
 
 // Pages Auth
@@ -37,6 +34,7 @@ import 'features/attendance/presentation/pages/qr_generator_page.dart';
 import 'features/schedule/presentation/pages/schedule_page.dart';
 
 // Pages Stats
+import 'features/reports/presentation/pages/reports_page.dart';
 import 'features/stats/presentation/pages/stats_page.dart';
 
 // Pages Notifications
@@ -44,11 +42,7 @@ import 'features/notifications/presentation/pages/notifications_page.dart';
 
 // Pages Profile
 import 'features/profile/presentation/pages/profile_page.dart';
-
-// Pages Admin (à créer)
-// import 'features/admin/presentation/pages/users_page.dart';
-// import 'features/admin/presentation/pages/courses_page.dart';
-// import 'features/admin/presentation/pages/reports_page.dart';
+import 'features/users_management/presentation/pages/users_page.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -84,7 +78,8 @@ class ISPMApp extends StatelessWidget {
       providers: [
         // Auth — singleton global + vérification session au démarrage
         BlocProvider(
-          create: (_) => di.sl<AuthBloc>()..add(CheckAuthStatusEvent()),
+          create: (_) =>
+              di.sl<AuthBloc>()..add(const AuthEvent.checkAuthStatus()),
         ),
 
         // Schedule — partagé home + schedule page
@@ -96,11 +91,15 @@ class ISPMApp extends StatelessWidget {
         // Notifications — chargé automatiquement au démarrage
         BlocProvider(
           create: (_) =>
-          di.sl<NotificationBloc>()..add(LoadNotificationsEvent()),
+              di.sl<NotificationBloc>()
+                ..add(const NotificationEvent.loadNotifications()),
         ),
 
         // Stats — chargé à la demande depuis StatsPage
         BlocProvider(create: (_) => di.sl<StatsBloc>()),
+
+        // ✅ Reports — pour les pages admin
+        BlocProvider(create: (_) => di.sl<ReportBloc>()),
       ],
       child: MaterialApp(
         title: 'ISPM Présence',
@@ -117,19 +116,19 @@ class ISPMApp extends StatelessWidget {
         // les routes avec arguments et les transitions custom.
         // On garde routes: comme fallback simple.
         routes: {
-          '/login':         (_) => const LoginPage(),
-          '/home':          (_) => const HomePage(),
-          '/scanner':       (_) => const AttendanceScannerPage(),
-          '/schedule':      (_) => const SchedulePage(),
-          '/stats':         (_) => const StatsPage(),
+          '/login': (_) => const LoginPage(),
+          '/home': (_) => const HomePage(),
+          '/scanner': (_) => const AttendanceScannerPage(),
+          '/schedule': (_) => const SchedulePage(),
+          '/stats': (_) => const StatsPage(),
           '/notifications': (_) => const NotificationsPage(),
           // Admin — commenté jusqu'à création des pages
-          '/users':         (_) => const UsersPage(),
-          '/courses':       (_) => const CoursesPage(),
-          '/reports':       (_) => const ReportsPage(),
-          '/settings':      (_) => const SettingsPage(),
+          '/users': (_) => const UsersPage(),
+          '/courses': (_) => const CoursesPage(),
+          '/reports': (_) => const ReportsPage(),
+          '/settings': (_) => const SettingsPage(),
           // Profile — commenté jusqu'à création
-          '/profile':       (_) => const ProfilePage(),
+          '/profile': (_) => const ProfilePage(),
         },
 
         // ── Transitions fluides + routes avec arguments ─────────────
@@ -137,7 +136,7 @@ class ISPMApp extends StatelessWidget {
           Widget? page;
 
           switch (settings.name) {
-          // ── Auth ────────────────────────────────────────────────
+            // ── Auth ────────────────────────────────────────────────
             case '/login':
               page = const LoginPage();
 
@@ -146,7 +145,7 @@ class ISPMApp extends StatelessWidget {
               if (user == null) return null;
               page = ChangePasswordPage(user: user);
 
-          // ── App principale ──────────────────────────────────────
+            // ── App principale ──────────────────────────────────────
             case '/home':
               page = const HomePage();
 
@@ -162,7 +161,7 @@ class ISPMApp extends StatelessWidget {
             case '/notifications':
               page = const NotificationsPage();
 
-          // ── Admin (placeholder jusqu'à création des pages) ──────
+            // ── Admin (placeholder jusqu'à création des pages) ──────
             case '/users':
               page = _PlaceholderPage(
                 title: 'Utilisateurs',
@@ -191,7 +190,7 @@ class ISPMApp extends StatelessWidget {
                 color: ISPMColors.grey400,
               );
 
-          // ── Profile ──────────────────────────────────────────────
+            // ── Profile ──────────────────────────────────────────────
             case '/profile':
               page = const ProfilePage();
 
@@ -218,17 +217,11 @@ PageRouteBuilder _ispmPageRoute({
     transitionDuration: const Duration(milliseconds: 280),
     reverseTransitionDuration: const Duration(milliseconds: 220),
     transitionsBuilder: (_, animation, __, child) {
-      final fade = CurvedAnimation(
-        parent: animation,
-        curve: Curves.easeOut,
-      );
+      final fade = CurvedAnimation(parent: animation, curve: Curves.easeOut);
       final slide = Tween<Offset>(
         begin: const Offset(0.04, 0),
         end: Offset.zero,
-      ).animate(CurvedAnimation(
-        parent: animation,
-        curve: Curves.easeOutCubic,
-      ));
+      ).animate(CurvedAnimation(parent: animation, curve: Curves.easeOutCubic));
 
       return FadeTransition(
         opacity: fade,
@@ -316,8 +309,10 @@ class _PlaceholderPage extends StatelessWidget {
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),
-                padding:
-                const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 24,
+                  vertical: 12,
+                ),
               ),
               child: const Text(
                 'Retour',

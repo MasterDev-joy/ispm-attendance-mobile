@@ -1,24 +1,34 @@
+import 'package:freezed_annotation/freezed_annotation.dart';
 import '../../domain/entities/user.dart';
 
-class UserModel extends User {
-  const UserModel({
-    required super.id,
-    required super.email,
-    required super.name,
-    required super.role,
-    super.isFirstLogin,
-    super.hasBiometricsEnabled,
-  });
+part 'user_model.freezed.dart';
+part 'user_model.g.dart';
 
-  // Convertit le JSON du serveur Node.js en objet Dart
-  factory UserModel.fromJson(Map<String, dynamic> json) {
-    return UserModel(
-      id: json['id'],
-      email: json['email'] ?? '',
-      name: "${json['firstName']} ${json['lastName']}", // Concaténation du nom et prénom
-      role: json['role'],
-      isFirstLogin: json['isFirstLogin'] ?? false,
-      hasBiometricsEnabled: false,
-    );
-  }
+// DTO : ne doit JAMAIS hériter de l'entity User
+// Sa seule responsabilité : désérialiser le JSON et fournir toEntity()
+@freezed
+abstract class UserModel with _$UserModel {
+  const UserModel._(); // nécessaire pour définir des méthodes custom
+
+  const factory UserModel({
+    required String id,
+    required String email,
+    @JsonKey(name: 'firstName') required String firstName,
+    @JsonKey(name: 'lastName') required String lastName,
+    required String role,
+    @Default(false) bool isFirstLogin,
+  }) = _UserModel;
+
+  factory UserModel.fromJson(Map<String, dynamic> json) =>
+      _$UserModelFromJson(json);
+
+  // Conversion DTO → Entity (la seule dépendance autorisée vers domain/)
+  User toEntity() => User(
+    id: id,
+    email: email,
+    name: '$firstName $lastName',
+    role: role,
+    isFirstLogin: isFirstLogin,
+    hasBiometricsEnabled: false,
+  );
 }

@@ -47,7 +47,7 @@ import 'admin_home_body.dart';
 // ── Constantes couleurs ───────────────────────────────────────────────────────
 
 const _kGreen = ISPMColors.green;
-const _kBlue  = Color(0xFF378ADD);
+const _kBlue = Color(0xFF378ADD);
 const _kAmber = Color(0xFFBA7517);
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -61,7 +61,6 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage>
     with SingleTickerProviderStateMixin {
-
   // ── Horloge ───────────────────────────────────────────────────────────────
   late Timer _clockTimer;
   DateTime _now = DateTime.now();
@@ -92,10 +91,12 @@ class _HomePageState extends State<HomePage>
     context.read<ScheduleBloc>().add(LoadScheduleEvent());
 
     // Barre système — icônes claires sur fond sombre
-    SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
-      statusBarColor: Colors.transparent,
-      statusBarIconBrightness: Brightness.light,
-    ));
+    SystemChrome.setSystemUIOverlayStyle(
+      const SystemUiOverlayStyle(
+        statusBarColor: Colors.transparent,
+        statusBarIconBrightness: Brightness.light,
+      ),
+    );
   }
 
   @override
@@ -110,10 +111,8 @@ class _HomePageState extends State<HomePage>
   UserRole _resolveRole(String rawRole) {
     switch (rawRole.toLowerCase().trim()) {
       case 'supervisor':
-      case 'supervisor':
         return UserRole.supervisor;
       case 'admin':
-      case 'administrator':
         return UserRole.admin;
       default:
         return UserRole.professor;
@@ -123,25 +122,25 @@ class _HomePageState extends State<HomePage>
   // ── Couleur active nav selon rôle ─────────────────────────────────────────
 
   Color _accentFor(UserRole role) => switch (role) {
-    UserRole.professor  => _kGreen,
+    UserRole.professor => _kGreen,
     UserRole.supervisor => _kBlue,
-    UserRole.admin      => _kAmber,
+    UserRole.admin => _kAmber,
   };
 
   // ── Items navigation selon rôle ───────────────────────────────────────────
 
   List<NavItem> _navItemsFor(UserRole role) => switch (role) {
-    UserRole.professor  => HomeNavItems.professor,
+    UserRole.professor => HomeNavItems.professor,
     UserRole.supervisor => HomeNavItems.supervisor,
-    UserRole.admin      => HomeNavItems.admin,
+    UserRole.admin => HomeNavItems.admin,
   };
 
   // ── Couleur blob background selon rôle ───────────────────────────────────
 
   Color _blobColorFor(UserRole role) => switch (role) {
-    UserRole.professor  => ISPMColors.greenDark,
+    UserRole.professor => ISPMColors.greenDark,
     UserRole.supervisor => _kBlue,
-    UserRole.admin      => _kAmber,
+    UserRole.admin => _kAmber,
   };
 
   // ── Tap navigation ────────────────────────────────────────────────────────
@@ -170,10 +169,9 @@ class _HomePageState extends State<HomePage>
       context,
       onConfirm: () {
         context.read<AuthBloc>().add(LogoutRequestedEvent());
-        Navigator.of(context).pushNamedAndRemoveUntil(
-          '/login',
-              (route) => false,
-        );
+        Navigator.of(
+          context,
+        ).pushNamedAndRemoveUntil('/login', (route) => false);
       },
     );
   }
@@ -184,25 +182,24 @@ class _HomePageState extends State<HomePage>
   Widget build(BuildContext context) {
     return BlocBuilder<AuthBloc, AuthState>(
       builder: (context, authState) {
-
         // ── Extraction des données utilisateur ──────────────────────
         final String userName;
         final UserRole role;
         final bool hasNotification;
 
         if (authState is AuthAuthenticated) {
-          userName        = authState.user.name;
-          role            = _resolveRole(authState.user.role);
+          userName = authState.user.name;
+          role = _resolveRole(authState.user.role);
           hasNotification = false; // TODO: brancher NotificationBloc
         } else {
           // Fallback pendant le chargement / état intermédiaire
-          userName        = '';
-          role            = UserRole.professor;
+          userName = '';
+          role = UserRole.professor;
           hasNotification = false;
         }
 
-        final accent    = _accentFor(role);
-        final navItems  = _navItemsFor(role);
+        final accent = _accentFor(role);
+        final navItems = _navItemsFor(role);
         final blobColor = _blobColorFor(role);
 
         return Scaffold(
@@ -219,7 +216,6 @@ class _HomePageState extends State<HomePage>
 
           body: Stack(
             children: [
-
               // ────────────────────────────────────────────────────
               //  BACKGROUND : blobs + mesh
               // ────────────────────────────────────────────────────
@@ -259,14 +255,13 @@ class _HomePageState extends State<HomePage>
                 bottom: false,
                 child: Column(
                   children: [
-
                     // ── AppBar ─────────────────────────────────────
                     _AnimatedAppBar(
                       animController: _animController,
                       child: HomeAppBar(
-                        userName:          userName,
-                        role:              role,
-                        hasNotification:   hasNotification,
+                        userName: userName,
+                        role: role,
+                        hasNotification: hasNotification,
                         onNotificationTap: () =>
                             Navigator.pushNamed(context, '/notifications'),
                         onLogoutTap: _handleLogout,
@@ -278,15 +273,13 @@ class _HomePageState extends State<HomePage>
                     // ── Date + badge statut ────────────────────────
                     _AnimatedAppBar(
                       animController: _animController,
-                      child: _DateRow(now: _now, icon: role,),
+                      child: _DateRow(now: _now, icon: role),
                     ),
 
                     const SizedBox(height: 4),
 
                     // ── Body selon le rôle ─────────────────────────
-                    Expanded(
-                      child: _buildBody(role),
-                    ),
+                    Expanded(child: _buildBody(role)),
                   ],
                 ),
               ),
@@ -302,15 +295,15 @@ class _HomePageState extends State<HomePage>
   Widget _buildBody(UserRole role) {
     return switch (role) {
       UserRole.professor => ProfessorHomeBody(
-        now:            _now,
+        now: _now,
         animController: _animController,
       ),
       UserRole.supervisor => SupervisorHomeBody(
-        now:            _now,
+        now: _now,
         animController: _animController,
       ),
       UserRole.admin => AdminHomeBody(
-        now:            _now,
+        now: _now,
         animController: _animController,
       ),
     };
@@ -323,30 +316,46 @@ class _DateRow extends StatelessWidget {
   final DateTime now;
   final UserRole icon;
 
-  const _DateRow({
-    required this.now,
-    required this.icon,
-  });
+  const _DateRow({required this.now, required this.icon});
 
   String get _dateText {
     const days = [
-      'Lundi', 'Mardi', 'Mercredi', 'Jeudi',
-      'Vendredi', 'Samedi', 'Dimanche',
+      'Lundi',
+      'Mardi',
+      'Mercredi',
+      'Jeudi',
+      'Vendredi',
+      'Samedi',
+      'Dimanche',
     ];
     const months = [
-      'janvier', 'février', 'mars', 'avril', 'mai', 'juin',
-      'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre',
+      'janvier',
+      'février',
+      'mars',
+      'avril',
+      'mai',
+      'juin',
+      'juillet',
+      'août',
+      'septembre',
+      'octobre',
+      'novembre',
+      'décembre',
     ];
     return '${days[now.weekday - 1]} ${now.day} ${months[now.month - 1]}';
   }
+
   @override
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 4, 20, 8),
       child: Row(
         children: [
-
-          Icon(icon.roleIcon, size: 13, color: ISPMColors.white.withOpacity(0.40)),
+          Icon(
+            icon.roleIcon,
+            size: 13,
+            color: ISPMColors.white.withOpacity(0.40),
+          ),
 
           const SizedBox(width: 6),
 
@@ -383,10 +392,7 @@ class _AnimatedAppBar extends StatelessWidget {
   final AnimationController animController;
   final Widget child;
 
-  const _AnimatedAppBar({
-    required this.animController,
-    required this.child,
-  });
+  const _AnimatedAppBar({required this.animController, required this.child});
 
   @override
   Widget build(BuildContext context) {
@@ -396,13 +402,13 @@ class _AnimatedAppBar extends StatelessWidget {
         curve: const Interval(0.0, 0.5, curve: Curves.easeOut),
       ),
       child: SlideTransition(
-        position: Tween<Offset>(
-          begin: const Offset(0, -0.15),
-          end: Offset.zero,
-        ).animate(CurvedAnimation(
-          parent: animController,
-          curve: const Interval(0.0, 0.6, curve: Curves.easeOutCubic),
-        )),
+        position: Tween<Offset>(begin: const Offset(0, -0.15), end: Offset.zero)
+            .animate(
+              CurvedAnimation(
+                parent: animController,
+                curve: const Interval(0.0, 0.6, curve: Curves.easeOutCubic),
+              ),
+            ),
         child: child,
       ),
     );

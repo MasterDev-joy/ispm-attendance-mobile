@@ -1,26 +1,11 @@
-// lib/features/notifications/presentation/blocs/notification_event.dart
-import 'package:equatable/equatable.dart';
+// lib/features/notifications/presentation/bloc/notification_event.dart
 
-abstract class NotificationEvent extends Equatable {
-  const NotificationEvent();
-  @override
-  List<Object?> get props => [];
-}
+part of 'notification_bloc.dart';
 
-class LoadNotificationsEvent extends NotificationEvent {}
-
-class MarkAsReadEvent extends NotificationEvent {
-  final String notificationId;
-  const MarkAsReadEvent(this.notificationId);
-  @override
-  List<Object?> get props => [notificationId];
-}
-
-class MarkAllReadEvent extends NotificationEvent {}
-
-class DismissNotificationEvent extends NotificationEvent {
-  final String notificationId;
-  const DismissNotificationEvent(this.notificationId);
-  @override
-  List<Object?> get props => [notificationId];
+@freezed
+class NotificationEvent with _$NotificationEvent {
+  const factory NotificationEvent.loadNotifications() = _LoadNotifications;
+  const factory NotificationEvent.markAsRead(String notificationId) = _MarkAsRead;
+  const factory NotificationEvent.markAllRead() = _MarkAllRead;
+  const factory NotificationEvent.dismissNotification(String notificationId) = _DismissNotification;
 }

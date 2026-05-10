@@ -1,47 +1,12 @@
-import 'package:equatable/equatable.dart';
-import '../../domain/entities/user.dart';
+part of 'auth_bloc.dart';
 
-abstract class AuthState extends Equatable {
-  const AuthState();
-
-  @override
-  List<Object> get props => [];
+@freezed
+class AuthState with _$AuthState {
+  const factory AuthState.initial() = _Initial;
+  const factory AuthState.loading() = _Loading;
+  const factory AuthState.authenticated(User user) = _Authenticated;
+  const factory AuthState.requiresPasswordChange(User user) =
+      _RequiresPasswordChange;
+  const factory AuthState.unauthenticated() = _Unauthenticated;
+  const factory AuthState.error(String message) = _Error;
 }
-
-class AuthInitial extends AuthState {}
-
-// Pendant que l'application vérifie le mot de passe (pour afficher un loader)
-class AuthLoading extends AuthState {}
-
-// Si la connexion réussit
-class AuthAuthenticated extends AuthState {
-  final User user;
-
-  const AuthAuthenticated(this.user);
-
-  @override
-  List<Object> get props => [user];
-}
-
-// Si la connexion échoue (mauvais mot de passe, etc.)
-class AuthError extends AuthState {
-  final String message;
-
-  const AuthError(this.message);
-
-  @override
-  List<Object> get props => [message];
-}
-
-// Si la connexion réussit MAIS que c'est le premier login
-class AuthRequiresPasswordChange extends AuthState {
-  final User user;
-
-  const AuthRequiresPasswordChange(this.user);
-
-  @override
-  List<Object> get props => [user];
-}
-
-// Si l'utilisateur n'est pas connecté
-class AuthUnauthenticated extends AuthState {}

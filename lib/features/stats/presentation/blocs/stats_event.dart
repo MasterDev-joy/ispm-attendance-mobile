@@ -1,24 +1,10 @@
 // lib/features/stats/presentation/blocs/stats_event.dart
-import 'package:equatable/equatable.dart';
+part of 'stats_bloc.dart';
 
-enum StatsPeriod { month, semester, all }
-
-abstract class StatsEvent extends Equatable {
-  const StatsEvent();
-  @override
-  List<Object?> get props => [];
-}
-
-class LoadStatsEvent extends StatsEvent {
-  final StatsPeriod period;
-  const LoadStatsEvent({this.period = StatsPeriod.month});
-  @override
-  List<Object?> get props => [period];
-}
-
-class ChangePeriodEvent extends StatsEvent {
-  final StatsPeriod period;
-  const ChangePeriodEvent(this.period);
-  @override
-  List<Object?> get props => [period];
+@freezed
+abstract class StatsEvent with _$StatsEvent {
+  const factory StatsEvent.load({
+    @Default(StatsPeriod.month) StatsPeriod period,
+  }) = _Load;
+  const factory StatsEvent.changePeriod(StatsPeriod period) = _ChangePeriod;
 }

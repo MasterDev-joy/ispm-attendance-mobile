@@ -5,7 +5,6 @@ import '../../../../core/presentation/widgets/ispm_animated_logo.dart';
 import '../../../../core/presentation/widgets/ispm_glow_blob.dart';
 import '../../../../core/presentation/widgets/ispm_mesh_grid.dart';
 import '../blocs/auth_bloc.dart';
-import '../blocs/auth_state.dart';
 import '../../../../core/theme/app_theme.dart';
 
 class SplashPage extends StatefulWidget {
@@ -43,7 +42,7 @@ class _SplashPageState extends State<SplashPage>
       ),
     );
 
-    _controller.forward().then((_) => _navigateToNextPage());
+    _controller.forward().then((_) => _tryNavigate());
   }
 
   @override
@@ -52,30 +51,41 @@ class _SplashPageState extends State<SplashPage>
     super.dispose();
   }
 
-  void _navigateToNextPage() {
+  // ── Navigation selon l'état freezed ───────────────────────────────────────
+  void _tryNavigate() {
     if (!mounted) return;
     final state = context.read<AuthBloc>().state;
-    if (state is AuthLoading || state is AuthInitial) return;
-    if (state is AuthAuthenticated) {
-      Navigator.of(context).pushReplacementNamed('/home');
-    } else if (state is AuthRequiresPasswordChange) {
-      Navigator.of(context).pushReplacementNamed(
-        '/change-password',
-        arguments: state.user,
-      );
-    } else {
-      Navigator.of(context).pushReplacementNamed('/login');
-    }
 
+    // On attend que l'état soit résolu (pas initial ni loading)
+    state.whenOrNull(
+      initial: () => null, // pas encore résolu → on attend le BlocListener
+      loading: () => null, // en cours → on attend le BlocListener
+      authenticated: (_) {
+        Navigator.of(context).pushReplacementNamed('/home');
+      },
+      requiresPasswordChange: (user) {
+        Navigator.of(
+          context,
+        ).pushReplacementNamed('/change-password', arguments: user);
+      },
+      unauthenticated: () {
+        Navigator.of(context).pushReplacementNamed('/login');
+      },
+      error: (_) {
+        Navigator.of(context).pushReplacementNamed('/login');
+      },
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return BlocListener<AuthBloc, AuthState>(
+      // Le listener réagit quand l'état arrive APRÈS la fin de l'animation
       listener: (context, state) {
-        if (_controller.isCompleted) _navigateToNextPage();
+        if (_controller.isCompleted) _tryNavigate();
       },
       child: Scaffold(
+        backgroundColor: const Color(0xFF0D1210),
         body: Stack(
           fit: StackFit.expand,
           children: [
@@ -95,7 +105,7 @@ class _SplashPageState extends State<SplashPage>
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// BACKGROUND : radial glow + mesh grid
+// BACKGROUND
 // ─────────────────────────────────────────────────────────────────────────────
 
 class _SplashBackground extends StatelessWidget {
@@ -107,10 +117,7 @@ class _SplashBackground extends StatelessWidget {
     return Stack(
       fit: StackFit.expand,
       children: [
-        // Fond dark ISPM
         const ColoredBox(color: Color(0xFF0D1210)),
-
-        // Blob radial vert centré
         Center(
           child: IspmGlowBlob(
             width: size.width * 0.85,
@@ -118,8 +125,6 @@ class _SplashBackground extends StatelessWidget {
             primaryColor: ISPMColors.greenDark.withOpacity(0.18),
           ),
         ),
-
-        // Blob secondaire discret en haut-gauche
         Positioned(
           top: -60,
           left: -40,
@@ -129,8 +134,6 @@ class _SplashBackground extends StatelessWidget {
             primaryColor: ISPMColors.green.withOpacity(0.10),
           ),
         ),
-
-        // Grille mesh fine
         const Positioned.fill(child: IspmMeshGrid()),
       ],
     );
@@ -138,7 +141,7 @@ class _SplashBackground extends StatelessWidget {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// CONTENT : logo animé + titre + tagline
+// CONTENT
 // ─────────────────────────────────────────────────────────────────────────────
 
 class _SplashContent extends StatelessWidget {
@@ -159,26 +162,13 @@ class _SplashContent extends StatelessWidget {
           scale: scaleAnimation,
           child: FadeTransition(
             opacity: fadeAnimation,
-            child: const IspmAnimatedLogo(
-              size: 160.0,
-              borderThickness: 5.0,
-            ),
+            child: const IspmAnimatedLogo(size: 160.0, borderThickness: 5.0),
           ),
         ),
-
         const SizedBox(height: 32),
-
-        FadeTransition(
-          opacity: fadeAnimation,
-          child: const _SplashTitle(),
-        ),
-
+        FadeTransition(opacity: fadeAnimation, child: const _SplashTitle()),
         const SizedBox(height: 10),
-
-        FadeTransition(
-          opacity: fadeAnimation,
-          child: const _SplashSubtitle(),
-        ),
+        FadeTransition(opacity: fadeAnimation, child: const _SplashSubtitle()),
       ],
     );
   }
@@ -222,12 +212,11 @@ class _SplashSubtitle extends StatelessWidget {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// LOADER : barre de progression en bas
+// LOADER
 // ─────────────────────────────────────────────────────────────────────────────
 
 class _SplashLoader extends StatelessWidget {
   final Animation<double> fadeAnimation;
-
   const _SplashLoader({required this.fadeAnimation});
 
   @override

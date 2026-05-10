@@ -1,37 +1,31 @@
-// lib/features/notifications/presentation/blocs/notification_state.dart
-import 'package:equatable/equatable.dart';
-import '../../domain/entities/app_notification.dart';
+// lib/features/notifications/presentation/bloc/notification_state.dart
 
-abstract class NotificationState extends Equatable {
-  const NotificationState();
-  @override
-  List<Object?> get props => [];
-}
+part of 'notification_bloc.dart';
 
-class NotificationInitial extends NotificationState {}
+@freezed
+class NotificationState with _$NotificationState {
+  const NotificationState._();
 
-class NotificationLoading extends NotificationState {}
+  const factory NotificationState.initial() = _Initial;
+  const factory NotificationState.loading() = _Loading;
+  const factory NotificationState.loaded(
+    List<AppNotification> notifications,
+  ) = _Loaded;
+  const factory NotificationState.error(String message) = _Error;
 
-class NotificationLoaded extends NotificationState {
-  final List<AppNotification> notifications;
+  // ── Helpers métier sur l'état loaded ──────────────────────────────────────
 
-  const NotificationLoaded(this.notifications);
+  List<AppNotification> get unread => maybeWhen(
+        loaded: (notifs) =>
+            notifs.where((n) => n.status == NotificationStatus.unread).toList(),
+        orElse: () => [],
+      );
 
-  List<AppNotification> get unread =>
-      notifications.where((n) => n.status == NotificationStatus.unread).toList();
-
-  List<AppNotification> get readOrArchived =>
-      notifications.where((n) => n.status != NotificationStatus.unread).toList();
+  List<AppNotification> get readOrArchived => maybeWhen(
+        loaded: (notifs) =>
+            notifs.where((n) => n.status != NotificationStatus.unread).toList(),
+        orElse: () => [],
+      );
 
   int get unreadCount => unread.length;
-
-  @override
-  List<Object?> get props => [notifications];
-}
-
-class NotificationError extends NotificationState {
-  final String message;
-  const NotificationError(this.message);
-  @override
-  List<Object?> get props => [message];
 }

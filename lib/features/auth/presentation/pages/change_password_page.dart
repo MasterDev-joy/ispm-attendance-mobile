@@ -1,15 +1,10 @@
 // lib/features/auth/presentation/pages/change_password_page.dart
 import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../domain/entities/user.dart';
 import '../blocs/auth_bloc.dart';
-import '../blocs/auth_event.dart';
-import '../blocs/auth_state.dart';
 import '../../../../core/theme/app_theme.dart';
-
-// Importation des widgets réutilisables
 import '../../../../core/presentation/widgets/ispm_button.dart';
 import '../../../../core/presentation/widgets/ispm_text_field.dart';
 import '../../../../core/presentation/widgets/ispm_mesh_grid.dart';
@@ -47,7 +42,6 @@ class _ChangePasswordPageState extends State<ChangePasswordPage>
       vsync: this,
     )..forward();
 
-    // Pour mettre à jour l'indicateur de force en temps réel
     _passwordController.addListener(() => setState(() {}));
   }
 
@@ -56,6 +50,7 @@ class _ChangePasswordPageState extends State<ChangePasswordPage>
     _passwordController.dispose();
     _confirmController.dispose();
     _animController.dispose();
+    _errorTimer?.cancel();
     super.dispose();
   }
 
@@ -63,7 +58,9 @@ class _ChangePasswordPageState extends State<ChangePasswordPage>
     _errorTimer?.cancel();
     setState(() {
       _showNewPassWordError = _passwordController.text.trim().isEmpty;
-      _showNewPasswordConfirmationError = _confirmController.text.trim().isEmpty;
+      _showNewPasswordConfirmationError = _confirmController.text
+          .trim()
+          .isEmpty;
     });
     _errorTimer = Timer(_kErrorDuration, () {
       if (mounted) {
@@ -75,7 +72,7 @@ class _ChangePasswordPageState extends State<ChangePasswordPage>
     });
   }
 
-  // ── Logique de force du mot de passe ──
+  // ── Force du mot de passe ─────────────────────────────────────────────────
   int get _strength {
     final v = _passwordController.text;
     if (v.length < 6) return 0;
@@ -105,28 +102,37 @@ class _ChangePasswordPageState extends State<ChangePasswordPage>
     return FadeTransition(
       opacity: CurvedAnimation(
         parent: _animController,
-        curve: Interval((0.1 * index).clamp(0.0, 1.0), 1.0, curve: Curves.easeOut),
+        curve: Interval(
+          (0.1 * index).clamp(0.0, 1.0),
+          1.0,
+          curve: Curves.easeOut,
+        ),
       ),
       child: SlideTransition(
-        position: Tween<Offset>(
-          begin: const Offset(0, 0.2),
-          end: Offset.zero,
-        ).animate(CurvedAnimation(
-          parent: _animController,
-          curve: Interval((0.1 * index).clamp(0.0, 1.0), 1.0, curve: Curves.easeOutCubic),
-        )),
+        position: Tween<Offset>(begin: const Offset(0, 0.2), end: Offset.zero)
+            .animate(
+              CurvedAnimation(
+                parent: _animController,
+                curve: Interval(
+                  (0.1 * index).clamp(0.0, 1.0),
+                  1.0,
+                  curve: Curves.easeOutCubic,
+                ),
+              ),
+            ),
         child: child,
       ),
     );
   }
 
+  // ── Envoi de l'event freezed ──────────────────────────────────────────────
   void _onSubmit() {
     _triggerErrors();
     if (_formKey.currentState!.validate()) {
       context.read<AuthBloc>().add(
-        ChangePasswordRequestedEvent(
+        AuthEvent.changePasswordRequested(
+          userId: widget.user.id,
           newPassword: _passwordController.text.trim(),
-          user: widget.user,
         ),
       );
     }
@@ -135,34 +141,43 @@ class _ChangePasswordPageState extends State<ChangePasswordPage>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: ISPMColors.black, // Utilisation de la couleur du thème[cite: 1]
+      backgroundColor: ISPMColors.black,
       body: BlocConsumer<AuthBloc, AuthState>(
         listener: (context, state) {
-          if (state is AuthError) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(state.message),
-                backgroundColor: ISPMColors.error,
-                behavior: SnackBarBehavior.floating,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-              ),
-            );
-          } else if (state is AuthAuthenticated) {
-            Navigator.of(context).pushReplacementNamed('/home');
-          }
+          state.whenOrNull(
+            // Erreur → SnackBar
+            error: (message) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(message),
+                  backgroundColor: ISPMColors.error,
+                  behavior: SnackBarBehavior.floating,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+              );
+            },
+            // Mot de passe changé → accueil
+            authenticated: (_) {
+              Navigator.of(context).pushReplacementNamed('/home');
+            },
+          );
         },
         builder: (context, state) {
+          // isLoading depuis l'état freezed
+          final isLoading = state.whenOrNull(loading: () => true) ?? false;
+
           return Stack(
             children: [
-              // ── FOND RÉUTILISABLE ──[cite: 1, 2]
               const Positioned.fill(child: _PageBackground()),
-
               SafeArea(
                 child: SingleChildScrollView(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      _staggered(0, const _PageHeader()),
+                      // En-tête — accède à widget.user directement (plus de findAncestorStateOfType)
+                      _staggered(0, _PageHeader(user: widget.user)),
 
                       Padding(
                         padding: const EdgeInsets.fromLTRB(24, 28, 24, 40),
@@ -171,7 +186,7 @@ class _ChangePasswordPageState extends State<ChangePasswordPage>
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.stretch,
                             children: [
-                              // Champ Nouveau mot de passe[cite: 4]
+                              // Nouveau mot de passe
                               _staggered(
                                 1,
                                 IspmTextField(
@@ -184,13 +199,20 @@ class _ChangePasswordPageState extends State<ChangePasswordPage>
                                   errorText: 'Nouveau mot de passe requis',
                                   suffixIcon: IconButton(
                                     icon: Icon(
-                                      _obscurePassword ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+                                      _obscurePassword
+                                          ? Icons.visibility_off_outlined
+                                          : Icons.visibility_outlined,
                                       color: Colors.white.withOpacity(0.3),
                                       size: 18,
                                     ),
-                                    onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+                                    onPressed: () => setState(
+                                      () =>
+                                          _obscurePassword = !_obscurePassword,
+                                    ),
                                   ),
-                                  validator: (v) => v == null || v.length < 6 ? 'Minimum 6 caractères requis' : null,
+                                  validator: (v) => v == null || v.length < 6
+                                      ? 'Minimum 6 caractères requis'
+                                      : null,
                                 ),
                               ),
 
@@ -207,7 +229,7 @@ class _ChangePasswordPageState extends State<ChangePasswordPage>
 
                               const SizedBox(height: 20),
 
-                              // Champ Confirmation[cite: 4]
+                              // Confirmation
                               _staggered(
                                 3,
                                 IspmTextField(
@@ -217,31 +239,41 @@ class _ChangePasswordPageState extends State<ChangePasswordPage>
                                   prefixIcon: Icons.lock_reset_rounded,
                                   isPassword: _obscureConfirm,
                                   showError: _showNewPasswordConfirmationError,
-                                  errorText: 'Confirmation du mot de passe requis',
+                                  errorText:
+                                      'Confirmation du mot de passe requis',
                                   suffixIcon: IconButton(
                                     icon: Icon(
-                                      _obscureConfirm ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+                                      _obscureConfirm
+                                          ? Icons.visibility_off_outlined
+                                          : Icons.visibility_outlined,
                                       color: Colors.white.withOpacity(0.3),
                                       size: 18,
                                     ),
-                                    onPressed: () => setState(() => _obscureConfirm = !_obscureConfirm),
+                                    onPressed: () => setState(
+                                      () => _obscureConfirm = !_obscureConfirm,
+                                    ),
                                   ),
-                                  validator: (v) => v != _passwordController.text ? 'Les mots de passe ne correspondent pas' : null,
+                                  validator: (v) =>
+                                      v != _passwordController.text
+                                      ? 'Les mots de passe ne correspondent pas'
+                                      : null,
                                 ),
                               ),
 
                               const SizedBox(height: 24),
 
-                              _staggered(4, _RulesBox(password: _passwordController.text)),
+                              _staggered(
+                                4,
+                                _RulesBox(password: _passwordController.text),
+                              ),
 
                               const SizedBox(height: 32),
 
-                              // Bouton Enregistrer[cite: 3]
                               _staggered(
                                 5,
                                 IspmButton(
                                   text: 'Enregistrer et continuer',
-                                  isLoading: state is AuthLoading,
+                                  isLoading: isLoading,
                                   onPressed: _onSubmit,
                                   icon: Icons.shield_outlined,
                                 ),
@@ -263,7 +295,7 @@ class _ChangePasswordPageState extends State<ChangePasswordPage>
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// COMPOSANTS LOCAUX (PROPRES À CETTE PAGE)
+// COMPOSANTS LOCAUX
 // ─────────────────────────────────────────────────────────────────────────────
 
 class _PageBackground extends StatelessWidget {
@@ -282,19 +314,19 @@ class _PageBackground extends StatelessWidget {
             primaryColor: ISPMColors.green.withOpacity(0.18),
           ),
         ),
-        const IspmMeshGrid(opacity: 0.022), // Grille réutilisée[cite: 2]
+        const IspmMeshGrid(opacity: 0.022),
       ],
     );
   }
 }
 
+// ── En-tête — reçoit user en paramètre (plus de findAncestorStateOfType) ────
 class _PageHeader extends StatelessWidget {
-  const _PageHeader();
+  final User user;
+  const _PageHeader({required this.user});
 
   @override
   Widget build(BuildContext context) {
-    final user = (context.findAncestorStateOfType<_ChangePasswordPageState>())?.widget.user;
-
     return Padding(
       padding: const EdgeInsets.fromLTRB(24, 32, 24, 0),
       child: Column(
@@ -308,24 +340,44 @@ class _PageHeader extends StatelessWidget {
               borderRadius: BorderRadius.circular(14),
               border: Border.all(color: ISPMColors.green.withOpacity(0.3)),
             ),
-            child: const Icon(Icons.security_rounded, color: ISPMColors.green, size: 24),
+            child: const Icon(
+              Icons.security_rounded,
+              color: ISPMColors.green,
+              size: 24,
+            ),
           ),
           const SizedBox(height: 18),
           const Text(
             'Première connexion',
-            style: TextStyle(fontFamily: 'Poppins', fontSize: 24, fontWeight: FontWeight.w700, color: Colors.white),
+            style: TextStyle(
+              fontFamily: 'Poppins',
+              fontSize: 24,
+              fontWeight: FontWeight.w700,
+              color: Colors.white,
+            ),
           ),
           const SizedBox(height: 10),
           RichText(
             text: TextSpan(
-              style: TextStyle(fontFamily: 'Poppins', fontSize: 13, color: Colors.white.withOpacity(0.45), height: 1.65),
+              style: TextStyle(
+                fontFamily: 'Poppins',
+                fontSize: 13,
+                color: Colors.white.withOpacity(0.45),
+                height: 1.65,
+              ),
               children: [
                 const TextSpan(text: 'Bonjour '),
                 TextSpan(
-                  text: user?.name ?? '',
-                  style: const TextStyle(color: ISPMColors.green, fontWeight: FontWeight.w600),
+                  text: user.name,
+                  style: const TextStyle(
+                    color: ISPMColors.green,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
-                const TextSpan(text: ', veuillez définir un mot de passe personnel pour votre compte.'),
+                const TextSpan(
+                  text:
+                      ', veuillez définir un mot de passe personnel pour votre compte.',
+                ),
               ],
             ),
           ),
@@ -340,7 +392,11 @@ class _StrengthIndicator extends StatelessWidget {
   final Color color;
   final String label;
 
-  const _StrengthIndicator({required this.strength, required this.color, required this.label});
+  const _StrengthIndicator({
+    required this.strength,
+    required this.color,
+    required this.label,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -358,7 +414,15 @@ class _StrengthIndicator extends StatelessWidget {
           ),
         ),
         const SizedBox(width: 10),
-        Text(label, style: TextStyle(fontFamily: 'Poppins', fontSize: 11, fontWeight: FontWeight.w600, color: color)),
+        Text(
+          label,
+          style: TextStyle(
+            fontFamily: 'Poppins',
+            fontSize: 11,
+            fontWeight: FontWeight.w600,
+            color: color,
+          ),
+        ),
       ],
     );
   }
@@ -380,11 +444,21 @@ class _RulesBox extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('CRITÈRES RECOMMANDÉS',
-              style: TextStyle(fontSize: 9, fontWeight: FontWeight.w600, letterSpacing: 1.0, color: Colors.white.withOpacity(0.3))),
+          Text(
+            'CRITÈRES RECOMMANDÉS',
+            style: TextStyle(
+              fontSize: 9,
+              fontWeight: FontWeight.w600,
+              letterSpacing: 1.0,
+              color: Colors.white.withOpacity(0.3),
+            ),
+          ),
           const SizedBox(height: 12),
           _Rule(label: 'Au moins 8 caractères', ok: password.length >= 8),
-          _Rule(label: 'Une lettre majuscule', ok: RegExp(r'[A-Z]').hasMatch(password)),
+          _Rule(
+            label: 'Une lettre majuscule',
+            ok: RegExp(r'[A-Z]').hasMatch(password),
+          ),
           _Rule(label: 'Un chiffre', ok: RegExp(r'[0-9]').hasMatch(password)),
         ],
       ),
@@ -403,10 +477,19 @@ class _Rule extends StatelessWidget {
       padding: const EdgeInsets.only(bottom: 8),
       child: Row(
         children: [
-          Icon(ok ? Icons.check_circle : Icons.radio_button_unchecked,
-              size: 16, color: ok ? ISPMColors.green : Colors.white.withOpacity(0.2)),
+          Icon(
+            ok ? Icons.check_circle : Icons.radio_button_unchecked,
+            size: 16,
+            color: ok ? ISPMColors.green : Colors.white.withOpacity(0.2),
+          ),
           const SizedBox(width: 10),
-          Text(label, style: TextStyle(fontSize: 12, color: ok ? Colors.white : Colors.white.withOpacity(0.3))),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 12,
+              color: ok ? Colors.white : Colors.white.withOpacity(0.3),
+            ),
+          ),
         ],
       ),
     );

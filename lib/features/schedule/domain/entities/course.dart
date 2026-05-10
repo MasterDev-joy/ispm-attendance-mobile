@@ -1,19 +1,16 @@
 // lib/features/schedule/domain/entities/course.dart
-class Course {
-  final String id;
-  final String title;
-  final String fieldOfStudy;
-  final String professorName;
+import 'package:freezed_annotation/freezed_annotation.dart';
 
-  final DateTime startTime;
-  final DateTime endTime;
+part 'course.freezed.dart';
 
-  Course({
-    required this.id,
-    required this.title,
-    required this.fieldOfStudy,
-    required this.professorName,
-    required this.startTime,
-    required this.endTime,
-  });
+@freezed
+abstract class Course with _$Course {
+  const factory Course({
+    required String id,
+    required String title,
+    required String fieldOfStudy,
+    required String professorName,
+    required DateTime startTime,
+    required DateTime endTime,
+  }) = _Course;
 }

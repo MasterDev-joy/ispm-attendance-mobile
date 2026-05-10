@@ -1,37 +1,29 @@
 // lib/features/stats/domain/entities/stats_data.dart
-//
-// Entités Statistiques — mises à jour pour accepter le risk calculé par le backend.
-// Compatible avec l'ancien code (riskOverride est nullable).
-// ─────────────────────────────────────────────────────────────────────────────
+import 'package:freezed_annotation/freezed_annotation.dart';
+
+part 'stats_data.freezed.dart';
 
 enum PresenceRisk { good, warning, critical }
 
-/// Résumé de présence pour un cours donné (prof ou superviseur)
-class CourseStats {
-  final String courseId;
-  final String courseTitle;
-  final String fieldOfStudy;
-  final int    totalSessions;
-  final int    presentCount;
-  final int    absentCount;
+enum StatsPeriod { month, semester, all }
 
-  /// Risk transmis par le backend — si null, calculé localement via presenceRate
-  final PresenceRisk? riskOverride;
+@freezed
+abstract class CourseStats with _$CourseStats {
+  const CourseStats._();
 
-  const CourseStats({
-    required this.courseId,
-    required this.courseTitle,
-    required this.fieldOfStudy,
-    required this.totalSessions,
-    required this.presentCount,
-    required this.absentCount,
-    this.riskOverride,
-  });
+  const factory CourseStats({
+    required String courseId,
+    required String courseTitle,
+    required String fieldOfStudy,
+    required int totalSessions,
+    required int presentCount,
+    required int absentCount,
+    PresenceRisk? riskOverride,
+  }) = _CourseStats;
 
   double get presenceRate =>
       totalSessions == 0 ? 0 : presentCount / totalSessions;
 
-  /// Priorité : riskOverride (backend) > calcul local
   PresenceRisk get risk {
     if (riskOverride != null) return riskOverride!;
     if (presenceRate >= 0.80) return PresenceRisk.good;
@@ -40,39 +32,29 @@ class CourseStats {
   }
 }
 
-/// Résumé d'un cours souvent manqué (section "Cours les plus manqués")
-class CourseAbsenceSummary {
-  final String courseTitle;
-  final String fieldOfStudy;
-  final int    absenceCount;
-  final int    totalSessions;
+@freezed
+abstract class CourseAbsenceSummary with _$CourseAbsenceSummary {
+  const CourseAbsenceSummary._();
 
-  const CourseAbsenceSummary({
-    required this.courseTitle,
-    required this.fieldOfStudy,
-    required this.absenceCount,
-    required this.totalSessions,
-  });
+  const factory CourseAbsenceSummary({
+    required String courseTitle,
+    required String fieldOfStudy,
+    required int absenceCount,
+    required int totalSessions,
+  }) = _CourseAbsenceSummary;
 
   double get absenceRate =>
       totalSessions == 0 ? 0 : absenceCount / totalSessions;
 }
 
-/// Données globales agrégées pour la StatsPage
-class GlobalStats {
-  final int    totalSessions;
-  final int    presentCount;
-  final int    absentCount;
-  final double globalPresenceRate;
-  final List<CourseStats>          perCourse;
-  final List<CourseAbsenceSummary> mostMissed;
-
-  const GlobalStats({
-    required this.totalSessions,
-    required this.presentCount,
-    required this.absentCount,
-    required this.globalPresenceRate,
-    required this.perCourse,
-    required this.mostMissed,
-  });
+@freezed
+abstract class GlobalStats with _$GlobalStats {
+  const factory GlobalStats({
+    required int totalSessions,
+    required int presentCount,
+    required int absentCount,
+    required double globalPresenceRate,
+    required List<CourseStats> perCourse,
+    required List<CourseAbsenceSummary> mostMissed,
+  }) = _GlobalStats;
 }

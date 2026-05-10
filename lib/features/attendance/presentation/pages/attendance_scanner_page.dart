@@ -8,12 +8,11 @@
 import 'package:flutter/material.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/presentation/widgets/ispm_glow_blob.dart';
 import '../blocs/attendance_bloc.dart';
-import '../blocs/attendance_event.dart';
-import '../blocs/attendance_state.dart';
 import 'validation_success_page.dart';
 
 const _kBlue = Color(0xFF378ADD);
@@ -27,20 +26,19 @@ class AttendanceScannerPage extends StatefulWidget {
 
 class _AttendanceScannerPageState extends State<AttendanceScannerPage>
     with TickerProviderStateMixin {
-
   bool _isProcessing = false;
 
   // Ligne de scan animée
   late AnimationController _scanLineCtrl;
-  late Animation<double>   _scanLine;
+  late Animation<double> _scanLine;
 
   // Pulse sur le cadre quand scan en cours
   late AnimationController _processingCtrl;
-  late Animation<double>   _processingAnim;
+  late Animation<double> _processingAnim;
 
   // Entrée fade de la page
   late AnimationController _entryCtrl;
-  late Animation<double>   _entryAnim;
+  late Animation<double> _entryAnim;
 
   final MobileScannerController _cameraCtrl = MobileScannerController();
 
@@ -48,18 +46,27 @@ class _AttendanceScannerPageState extends State<AttendanceScannerPage>
   void initState() {
     super.initState();
 
-    _scanLineCtrl = AnimationController(vsync: this,
-        duration: const Duration(milliseconds: 1800))..repeat(reverse: true);
-    _scanLine = Tween<double>(begin: 0.0, end: 1.0).animate(
-        CurvedAnimation(parent: _scanLineCtrl, curve: Curves.easeInOut));
+    _scanLineCtrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1800),
+    )..repeat(reverse: true);
+    _scanLine = Tween<double>(
+      begin: 0.0,
+      end: 1.0,
+    ).animate(CurvedAnimation(parent: _scanLineCtrl, curve: Curves.easeInOut));
 
-    _processingCtrl = AnimationController(vsync: this,
-        duration: const Duration(milliseconds: 600))..repeat(reverse: true);
+    _processingCtrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 600),
+    )..repeat(reverse: true);
     _processingAnim = Tween<double>(begin: 0.6, end: 1.0).animate(
-        CurvedAnimation(parent: _processingCtrl, curve: Curves.easeInOut));
+      CurvedAnimation(parent: _processingCtrl, curve: Curves.easeInOut),
+    );
 
-    _entryCtrl = AnimationController(vsync: this,
-        duration: const Duration(milliseconds: 500))..forward();
+    _entryCtrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 500),
+    )..forward();
     _entryAnim = CurvedAnimation(parent: _entryCtrl, curve: Curves.easeOut);
   }
 
@@ -81,11 +88,13 @@ class _AttendanceScannerPageState extends State<AttendanceScannerPage>
         final parts = raw.split('|');
         if (parts.length == 3) {
           setState(() => _isProcessing = true);
-          context.read<AttendanceBloc>().add(ValidateQrEvent(
-            token:       parts[0],
-            professorId: parts[1],
-            courseId:    parts[2],
-          ));
+          context.read<AttendanceBloc>().add(
+            AttendanceEvent.validateQr(
+              token: parts[0],
+              professorId: parts[1],
+              courseId: parts[2],
+            ),
+          );
         }
         break;
       }
@@ -98,41 +107,57 @@ class _AttendanceScannerPageState extends State<AttendanceScannerPage>
       backgroundColor: Colors.black,
       body: BlocConsumer<AttendanceBloc, AttendanceState>(
         listener: (context, state) {
-          if (state is AttendanceValidationSuccess) {
-            Navigator.pushReplacement(context, MaterialPageRoute(
-              builder: (_) => ValidationSuccessPage(
-                  validationData: state.validationData),
-            ));
-          } else if (state is AttendanceError) {
-            setState(() => _isProcessing = false);
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Row(children: [
-                  const Icon(Icons.error_outline_rounded,
-                      color: Colors.white, size: 18),
-                  const SizedBox(width: 10),
-                  Expanded(child: Text(state.message,
-                      style: const TextStyle(fontFamily: 'Poppins', fontSize: 13))),
-                ]),
-                backgroundColor: ISPMColors.error,
-                behavior: SnackBarBehavior.floating,
-                margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12)),
-              ),
-            );
-          }
+          // Utilisation du pattern matching de Freezed spécialement pour les listeners
+          state.whenOrNull(
+            success: (result) {
+              // On utilise GoRouter au lieu de Navigator
+              // (N'oublie pas de définir cette route dans ton routeur avec le paramètre 'extra')
+              context.go('/validation-success', extra: result);
+            },
+            error: (message) {
+              setState(() => _isProcessing = false);
+
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Row(
+                    children: [
+                      const Icon(
+                        Icons.error_outline_rounded,
+                        color: Colors.white,
+                        size: 18,
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Text(
+                          message, // Directement extrait par Freezed
+                          style: const TextStyle(
+                            fontFamily: 'Poppins',
+                            fontSize: 13,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  backgroundColor: ISPMColors.error,
+                  behavior: SnackBarBehavior.floating,
+                  margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+              );
+            },
+          );
         },
         builder: (context, state) {
-          final isLoading = state is AttendanceLoading || _isProcessing;
+          final isLoading =
+              state.maybeWhen(loading: () => true, orElse: () => false) ||
+              _isProcessing;
 
           return Stack(
             children: [
               // ── Caméra plein écran ─────────────────────────────────
-              MobileScanner(
-                controller: _cameraCtrl,
-                onDetect: _onDetect,
-              ),
+              MobileScanner(controller: _cameraCtrl, onDetect: _onDetect),
 
               // ── Overlay personnalisé ────────────────────────────────
               AnimatedBuilder(
@@ -140,18 +165,23 @@ class _AttendanceScannerPageState extends State<AttendanceScannerPage>
                 builder: (_, __) => CustomPaint(
                   painter: _ScannerOverlayPainter(
                     scanLineValue: _scanLine.value,
-                    isProcessing:  isLoading,
-                    frameColor:    isLoading ? _kBlue : ISPMColors.green,
+                    isProcessing: isLoading,
+                    frameColor: isLoading ? _kBlue : ISPMColors.green,
                   ),
                   child: const SizedBox.expand(),
                 ),
               ),
 
               // ── Blob bleu coin haut ────────────────────────────────
-              Positioned(top: -60, right: -60,
-                  child: IspmGlowBlob.circle(radius: 160,
-                      primaryColor: _kBlue.withOpacity(0.12),
-                      secondaryColor: Colors.transparent)),
+              Positioned(
+                top: -60,
+                right: -60,
+                child: IspmGlowBlob.circle(
+                  radius: 160,
+                  primaryColor: _kBlue.withOpacity(0.12),
+                  secondaryColor: Colors.transparent,
+                ),
+              ),
 
               // ── UI SafeArea ────────────────────────────────────────
               SafeArea(
@@ -190,38 +220,58 @@ class _AttendanceScannerPageState extends State<AttendanceScannerPage>
   Widget _buildAppBar() {
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-      child: Row(children: [
-        // Bouton retour
-        GestureDetector(
-          onTap: () => Navigator.pop(context),
-          child: Container(
-              width: 40, height: 40,
+      child: Row(
+        children: [
+          // Bouton retour
+          GestureDetector(
+            onTap: () => Navigator.pop(context),
+            child: Container(
+              width: 40,
+              height: 40,
               decoration: BoxDecoration(
-                  color: Colors.black.withOpacity(0.45),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.white.withOpacity(0.15))),
-              child: const Icon(Icons.arrow_back_ios_new_rounded,
-                  size: 15, color: Colors.white)),
-        ),
-        const Expanded(
-          child: Text('Scanner un professeur',
+                color: Colors.black.withOpacity(0.45),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.white.withOpacity(0.15)),
+              ),
+              child: const Icon(
+                Icons.arrow_back_ios_new_rounded,
+                size: 15,
+                color: Colors.white,
+              ),
+            ),
+          ),
+          const Expanded(
+            child: Text(
+              'Scanner un professeur',
               textAlign: TextAlign.center,
-              style: TextStyle(fontFamily: 'Poppins', fontSize: 16,
-                  fontWeight: FontWeight.w600, color: Colors.white)),
-        ),
-        // Bouton torche
-        GestureDetector(
-          onTap: () => _cameraCtrl.toggleTorch(),
-          child: Container(
-              width: 40, height: 40,
+              style: TextStyle(
+                fontFamily: 'Poppins',
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+                color: Colors.white,
+              ),
+            ),
+          ),
+          // Bouton torche
+          GestureDetector(
+            onTap: () => _cameraCtrl.toggleTorch(),
+            child: Container(
+              width: 40,
+              height: 40,
               decoration: BoxDecoration(
-                  color: Colors.black.withOpacity(0.45),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.white.withOpacity(0.15))),
-              child: Icon(Icons.flashlight_on_rounded,
-                  size: 18, color: Colors.white.withOpacity(0.80))),
-        ),
-      ]),
+                color: Colors.black.withOpacity(0.45),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.white.withOpacity(0.15)),
+              ),
+              child: Icon(
+                Icons.flashlight_on_rounded,
+                size: 18,
+                color: Colors.white.withOpacity(0.80),
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -234,24 +284,48 @@ class _AttendanceScannerPageState extends State<AttendanceScannerPage>
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: _kBlue.withOpacity(0.30)),
       ),
-      child: Row(children: [
-        Container(width: 34, height: 34,
+      child: Row(
+        children: [
+          Container(
+            width: 34,
+            height: 34,
             decoration: BoxDecoration(
-                color: _kBlue.withOpacity(0.20),
-                borderRadius: BorderRadius.circular(10)),
-            child: const Icon(Icons.verified_user_rounded,
-                size: 16, color: _kBlue)),
-        const SizedBox(width: 12),
-        Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text('Mode Superviseur',
-                  style: TextStyle(fontFamily: 'Poppins', fontSize: 12,
-                      fontWeight: FontWeight.w600, color: Colors.white)),
-              Text('Validez la présence du professeur',
-                  style: TextStyle(fontFamily: 'Poppins', fontSize: 10,
-                      color: Colors.white.withOpacity(0.45))),
-            ])),
-      ]),
+              color: _kBlue.withOpacity(0.20),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: const Icon(
+              Icons.verified_user_rounded,
+              size: 16,
+              color: _kBlue,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Mode Superviseur',
+                  style: TextStyle(
+                    fontFamily: 'Poppins',
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.white,
+                  ),
+                ),
+                Text(
+                  'Validez la présence du professeur',
+                  style: TextStyle(
+                    fontFamily: 'Poppins',
+                    fontSize: 10,
+                    color: Colors.white.withOpacity(0.45),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -270,13 +344,25 @@ class _ScanHint extends StatelessWidget {
         borderRadius: BorderRadius.circular(24),
         border: Border.all(color: Colors.white.withOpacity(0.10)),
       ),
-      child: const Row(mainAxisSize: MainAxisSize.min, children: [
-        Icon(Icons.qr_code_scanner_rounded, size: 16, color: ISPMColors.green),
-        SizedBox(width: 8),
-        Text('Pointez la caméra vers le QR code',
-            style: TextStyle(fontFamily: 'Poppins', fontSize: 13,
-                color: Colors.white)),
-      ]),
+      child: const Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            Icons.qr_code_scanner_rounded,
+            size: 16,
+            color: ISPMColors.green,
+          ),
+          SizedBox(width: 8),
+          Text(
+            'Pointez la caméra vers le QR code',
+            style: TextStyle(
+              fontFamily: 'Poppins',
+              fontSize: 13,
+              color: Colors.white,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -298,15 +384,26 @@ class _ProcessingIndicator extends StatelessWidget {
           borderRadius: BorderRadius.circular(24),
           border: Border.all(color: _kBlue.withOpacity(0.40)),
         ),
-        child: const Row(mainAxisSize: MainAxisSize.min, children: [
-          SizedBox(width: 18, height: 18,
-              child: CircularProgressIndicator(
-                  color: _kBlue, strokeWidth: 2.2)),
-          SizedBox(width: 12),
-          Text('Vérification en cours…',
-              style: TextStyle(fontFamily: 'Poppins', fontSize: 13,
-                  fontWeight: FontWeight.w500, color: Colors.white)),
-        ]),
+        child: const Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            SizedBox(
+              width: 18,
+              height: 18,
+              child: CircularProgressIndicator(color: _kBlue, strokeWidth: 2.2),
+            ),
+            SizedBox(width: 12),
+            Text(
+              'Vérification en cours…',
+              style: TextStyle(
+                fontFamily: 'Poppins',
+                fontSize: 13,
+                fontWeight: FontWeight.w500,
+                color: Colors.white,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -316,8 +413,8 @@ class _ProcessingIndicator extends StatelessWidget {
 
 class _ScannerOverlayPainter extends CustomPainter {
   final double scanLineValue;
-  final bool   isProcessing;
-  final Color  frameColor;
+  final bool isProcessing;
+  final Color frameColor;
 
   const _ScannerOverlayPainter({
     required this.scanLineValue,
@@ -327,12 +424,12 @@ class _ScannerOverlayPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    final cutoutW    = size.width * 0.74;
-    final cutoutH    = cutoutW;
-    final cutoutLeft = (size.width  - cutoutW) / 2;
-    final cutoutTop  = (size.height - cutoutH) / 2 - 24;
+    final cutoutW = size.width * 0.74;
+    final cutoutH = cutoutW;
+    final cutoutLeft = (size.width - cutoutW) / 2;
+    final cutoutTop = (size.height - cutoutH) / 2 - 24;
     final cutoutRect = Rect.fromLTWH(cutoutLeft, cutoutTop, cutoutW, cutoutH);
-    const radius     = Radius.circular(22);
+    const radius = Radius.circular(22);
 
     // Fond sombre avec découpe
     final bgPaint = Paint()..color = Colors.black.withOpacity(0.62);
@@ -365,56 +462,67 @@ class _ScannerOverlayPainter extends CustomPainter {
     _drawCorner(
       Offset(cutoutLeft, cutoutTop + cL),
       Offset(cutoutLeft + cL, cutoutTop),
-      Offset(cutoutLeft + cL, cutoutTop), true,
+      Offset(cutoutLeft + cL, cutoutTop),
+      true,
     );
     canvas.drawLine(
-        Offset(cutoutLeft, cutoutTop + cL),
-        Offset(cutoutLeft, cutoutTop + 1),
-        cornerPaint);
+      Offset(cutoutLeft, cutoutTop + cL),
+      Offset(cutoutLeft, cutoutTop + 1),
+      cornerPaint,
+    );
     canvas.drawLine(
-        Offset(cutoutLeft, cutoutTop),
-        Offset(cutoutLeft + cL, cutoutTop),
-        cornerPaint);
+      Offset(cutoutLeft, cutoutTop),
+      Offset(cutoutLeft + cL, cutoutTop),
+      cornerPaint,
+    );
 
     // Haut-droit
     canvas.drawLine(
-        Offset(cutoutLeft + cutoutW, cutoutTop + cL),
-        Offset(cutoutLeft + cutoutW, cutoutTop + 1),
-        cornerPaint);
+      Offset(cutoutLeft + cutoutW, cutoutTop + cL),
+      Offset(cutoutLeft + cutoutW, cutoutTop + 1),
+      cornerPaint,
+    );
     canvas.drawLine(
-        Offset(cutoutLeft + cutoutW, cutoutTop),
-        Offset(cutoutLeft + cutoutW - cL, cutoutTop),
-        cornerPaint);
+      Offset(cutoutLeft + cutoutW, cutoutTop),
+      Offset(cutoutLeft + cutoutW - cL, cutoutTop),
+      cornerPaint,
+    );
 
     // Bas-gauche
     canvas.drawLine(
-        Offset(cutoutLeft, cutoutTop + cutoutH - cL),
-        Offset(cutoutLeft, cutoutTop + cutoutH - 1),
-        cornerPaint);
+      Offset(cutoutLeft, cutoutTop + cutoutH - cL),
+      Offset(cutoutLeft, cutoutTop + cutoutH - 1),
+      cornerPaint,
+    );
     canvas.drawLine(
-        Offset(cutoutLeft, cutoutTop + cutoutH),
-        Offset(cutoutLeft + cL, cutoutTop + cutoutH),
-        cornerPaint);
+      Offset(cutoutLeft, cutoutTop + cutoutH),
+      Offset(cutoutLeft + cL, cutoutTop + cutoutH),
+      cornerPaint,
+    );
 
     // Bas-droit
     canvas.drawLine(
-        Offset(cutoutLeft + cutoutW, cutoutTop + cutoutH - cL),
-        Offset(cutoutLeft + cutoutW, cutoutTop + cutoutH - 1),
-        cornerPaint);
+      Offset(cutoutLeft + cutoutW, cutoutTop + cutoutH - cL),
+      Offset(cutoutLeft + cutoutW, cutoutTop + cutoutH - 1),
+      cornerPaint,
+    );
     canvas.drawLine(
-        Offset(cutoutLeft + cutoutW, cutoutTop + cutoutH),
-        Offset(cutoutLeft + cutoutW - cL, cutoutTop + cutoutH),
-        cornerPaint);
+      Offset(cutoutLeft + cutoutW, cutoutTop + cutoutH),
+      Offset(cutoutLeft + cutoutW - cL, cutoutTop + cutoutH),
+      cornerPaint,
+    );
 
     // Ligne de scan (uniquement si pas en traitement)
     if (!isProcessing) {
       final lineY = cutoutTop + cutoutH * scanLineValue;
       final linePaint = Paint()
-        ..shader = LinearGradient(colors: [
-          frameColor.withOpacity(0),
-          frameColor.withOpacity(0.90),
-          frameColor.withOpacity(0),
-        ]).createShader(Rect.fromLTWH(cutoutLeft, lineY, cutoutW, 2))
+        ..shader = LinearGradient(
+          colors: [
+            frameColor.withOpacity(0),
+            frameColor.withOpacity(0.90),
+            frameColor.withOpacity(0),
+          ],
+        ).createShader(Rect.fromLTWH(cutoutLeft, lineY, cutoutW, 2))
         ..strokeWidth = 2;
       canvas.drawLine(
         Offset(cutoutLeft + 12, lineY),
@@ -427,6 +535,6 @@ class _ScannerOverlayPainter extends CustomPainter {
   @override
   bool shouldRepaint(_ScannerOverlayPainter old) =>
       old.scanLineValue != scanLineValue ||
-          old.isProcessing  != isProcessing  ||
-          old.frameColor    != frameColor;
+      old.isProcessing != isProcessing ||
+      old.frameColor != frameColor;
 }

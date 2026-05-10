@@ -1,37 +1,13 @@
-import 'package:equatable/equatable.dart';
-import '../../domain/entities/user.dart';
+part of 'auth_bloc.dart';
 
-abstract class AuthEvent extends Equatable {
-  const AuthEvent();
-
-  @override
-  List<Object> get props => [];
+@freezed
+class AuthEvent with _$AuthEvent {
+  const factory AuthEvent.checkAuthStatus() = _CheckAuthStatus;
+  const factory AuthEvent.loginRequested(String email, String password) =
+      _LoginRequested;
+  const factory AuthEvent.changePasswordRequested({
+    required String userId,
+    required String newPassword,
+  }) = _ChangePasswordRequested;
+  const factory AuthEvent.logoutRequested() = _LogoutRequested;
 }
-
-// Quand l'application s'ouvre, on vérifie s'il y a déjà une session
-class CheckAuthStatusEvent extends AuthEvent {}
-
-// Quand l'utilisateur clique sur le bouton "Se connecter"
-class LoginRequestedEvent extends AuthEvent {
-  final String email;
-  final String password;
-
-  const LoginRequestedEvent(this.email, this.password);
-
-  @override
-  List<Object> get props => [email, password];
-}
-
-// Quand l'utilisateur soumet son nouveau mot de passe
-class ChangePasswordRequestedEvent extends AuthEvent {
-  final String newPassword;
-  final User user; // On garde l'utilisateur sous la main
-
-  const ChangePasswordRequestedEvent({required this.newPassword, required this.user});
-
-  @override
-  List<Object> get props => [newPassword, user];
-}
-
-// Quand l'utilisateur clique sur "Déconnexion"
-class LogoutRequestedEvent extends AuthEvent {}
