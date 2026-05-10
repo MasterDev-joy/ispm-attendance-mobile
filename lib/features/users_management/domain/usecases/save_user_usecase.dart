@@ -1,27 +1,9 @@
-// lib/features/user_management/users/domain/usecases/user_usecases.dart
-//
-// ✅ AVANT : pas d'annotation injectable, pas de Either
-//    APRÈS : @lazySingleton + Either<Failure, T>
-// ─────────────────────────────────────────────────────────────────────────────
+// lib/features/users_management/domain/usecases/saver_user_usecase.dart
 import 'package:fpdart/fpdart.dart';
 import 'package:injectable/injectable.dart';
 import '../../../../../core/error/failures.dart';
 import '../entities/admin_user.dart';
 import '../repositories/user_repository.dart';
-
-@lazySingleton
-class GetUsers {
-  final UserRepository _r;
-  const GetUsers(this._r);
-  Future<Either<Failure, List<AdminUser>>> call() => _r.getUsers();
-}
-
-@lazySingleton
-class ToggleUser {
-  final UserRepository _r;
-  const ToggleUser(this._r);
-  Future<Either<Failure, void>> call(String id) => _r.toggleUser(id);
-}
 
 @lazySingleton
 class SaveUser {

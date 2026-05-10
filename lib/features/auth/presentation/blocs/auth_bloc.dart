@@ -2,7 +2,10 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:injectable/injectable.dart';
 import '../../domain/entities/user.dart';
-import '../../domain/usecases/auth_usecases.dart';
+import '../../domain/usecases/change_password_usecase.dart';
+import '../../domain/usecases/check_auth_status_usecase.dart';
+import '../../domain/usecases/login_usecase.dart';
+import '../../domain/usecases/logout_usecase.dart';
 import '../../../../core/error/failures.dart';
 
 part 'auth_bloc.freezed.dart';

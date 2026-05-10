@@ -1,16 +1,9 @@
-// lib/features/admin/courses/domain/usecases/course_usecases.dart
+// lib/features/courses_management/domain/usecases/save_course_usecases.dart
 import 'package:fpdart/fpdart.dart';
 import 'package:injectable/injectable.dart';
 import '../../../../../core/error/failures.dart';
 import '../entities/admin_course.dart';
 import '../repositories/course_repository.dart';
-
-@lazySingleton
-class GetCourses {
-  final CourseRepository _r;
-  const GetCourses(this._r);
-  Future<Either<Failure, List<AdminCourse>>> call() => _r.getCourses();
-}
 
 @lazySingleton
 class SaveCourse {
@@ -31,11 +24,4 @@ class SaveCourse {
     startTime: startTime,
     endTime: endTime,
   );
-}
-
-@lazySingleton
-class DeleteCourse {
-  final CourseRepository _r;
-  const DeleteCourse(this._r);
-  Future<Either<Failure, void>> call(String id) => _r.deleteCourse(id);
 }

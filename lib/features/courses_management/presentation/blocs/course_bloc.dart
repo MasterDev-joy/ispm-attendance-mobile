@@ -3,7 +3,9 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:injectable/injectable.dart';
 import '../../domain/entities/admin_course.dart';
-import '../../domain/usecases/course_usecases.dart';
+import '../../domain/usecases/get_courses_usecase.dart';
+import '../../domain/usecases/save_course_usecase.dart';
+import '../../domain/usecases/delete_course_usecase.dart';
 import '../../../../../core/error/failures.dart';
 
 part 'course_bloc.freezed.dart';

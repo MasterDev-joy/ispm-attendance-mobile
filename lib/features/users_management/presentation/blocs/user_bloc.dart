@@ -7,7 +7,9 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:injectable/injectable.dart';
 import '../../domain/entities/admin_user.dart';
-import '../../domain/usecases/user_usecases.dart';
+import '../../domain/usecases/get_users_usecase.dart';
+import '../../domain/usecases/save_user_usecase.dart';
+import '../../domain/usecases/toggle_user_usecase.dart';
 import '../../../../../core/error/failures.dart';
 
 part 'user_bloc.freezed.dart';
