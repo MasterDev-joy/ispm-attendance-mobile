@@ -14,7 +14,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$User {
 
- String get id; String get email; String get name; String get role; bool get isFirstLogin; bool get hasBiometricsEnabled;
+ String get id; String get email; String get firstName; String get lastName; UserRole get role; bool get isFirstLogin;
 /// Create a copy of User
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -25,16 +25,16 @@ $UserCopyWith<User> get copyWith => _$UserCopyWithImpl<User>(this as User, _$ide
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is User&&(identical(other.id, id) || other.id == id)&&(identical(other.email, email) || other.email == email)&&(identical(other.name, name) || other.name == name)&&(identical(other.role, role) || other.role == role)&&(identical(other.isFirstLogin, isFirstLogin) || other.isFirstLogin == isFirstLogin)&&(identical(other.hasBiometricsEnabled, hasBiometricsEnabled) || other.hasBiometricsEnabled == hasBiometricsEnabled));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is User&&(identical(other.id, id) || other.id == id)&&(identical(other.email, email) || other.email == email)&&(identical(other.firstName, firstName) || other.firstName == firstName)&&(identical(other.lastName, lastName) || other.lastName == lastName)&&(identical(other.role, role) || other.role == role)&&(identical(other.isFirstLogin, isFirstLogin) || other.isFirstLogin == isFirstLogin));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,id,email,name,role,isFirstLogin,hasBiometricsEnabled);
+int get hashCode => Object.hash(runtimeType,id,email,firstName,lastName,role,isFirstLogin);
 
 @override
 String toString() {
-  return 'User(id: $id, email: $email, name: $name, role: $role, isFirstLogin: $isFirstLogin, hasBiometricsEnabled: $hasBiometricsEnabled)';
+  return 'User(id: $id, email: $email, firstName: $firstName, lastName: $lastName, role: $role, isFirstLogin: $isFirstLogin)';
 }
 
 
@@ -45,7 +45,7 @@ abstract mixin class $UserCopyWith<$Res>  {
   factory $UserCopyWith(User value, $Res Function(User) _then) = _$UserCopyWithImpl;
 @useResult
 $Res call({
- String id, String email, String name, String role, bool isFirstLogin, bool hasBiometricsEnabled
+ String id, String email, String firstName, String lastName, UserRole role, bool isFirstLogin
 });
 
 
@@ -62,14 +62,14 @@ class _$UserCopyWithImpl<$Res>
 
 /// Create a copy of User
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? email = null,Object? name = null,Object? role = null,Object? isFirstLogin = null,Object? hasBiometricsEnabled = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? email = null,Object? firstName = null,Object? lastName = null,Object? role = null,Object? isFirstLogin = null,}) {
   return _then(_self.copyWith(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,email: null == email ? _self.email : email // ignore: cast_nullable_to_non_nullable
-as String,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
+as String,firstName: null == firstName ? _self.firstName : firstName // ignore: cast_nullable_to_non_nullable
+as String,lastName: null == lastName ? _self.lastName : lastName // ignore: cast_nullable_to_non_nullable
 as String,role: null == role ? _self.role : role // ignore: cast_nullable_to_non_nullable
-as String,isFirstLogin: null == isFirstLogin ? _self.isFirstLogin : isFirstLogin // ignore: cast_nullable_to_non_nullable
-as bool,hasBiometricsEnabled: null == hasBiometricsEnabled ? _self.hasBiometricsEnabled : hasBiometricsEnabled // ignore: cast_nullable_to_non_nullable
+as UserRole,isFirstLogin: null == isFirstLogin ? _self.isFirstLogin : isFirstLogin // ignore: cast_nullable_to_non_nullable
 as bool,
   ));
 }
@@ -155,10 +155,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String email,  String name,  String role,  bool isFirstLogin,  bool hasBiometricsEnabled)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String email,  String firstName,  String lastName,  UserRole role,  bool isFirstLogin)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _User() when $default != null:
-return $default(_that.id,_that.email,_that.name,_that.role,_that.isFirstLogin,_that.hasBiometricsEnabled);case _:
+return $default(_that.id,_that.email,_that.firstName,_that.lastName,_that.role,_that.isFirstLogin);case _:
   return orElse();
 
 }
@@ -176,10 +176,10 @@ return $default(_that.id,_that.email,_that.name,_that.role,_that.isFirstLogin,_t
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String email,  String name,  String role,  bool isFirstLogin,  bool hasBiometricsEnabled)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String email,  String firstName,  String lastName,  UserRole role,  bool isFirstLogin)  $default,) {final _that = this;
 switch (_that) {
 case _User():
-return $default(_that.id,_that.email,_that.name,_that.role,_that.isFirstLogin,_that.hasBiometricsEnabled);case _:
+return $default(_that.id,_that.email,_that.firstName,_that.lastName,_that.role,_that.isFirstLogin);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -196,10 +196,10 @@ return $default(_that.id,_that.email,_that.name,_that.role,_that.isFirstLogin,_t
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String email,  String name,  String role,  bool isFirstLogin,  bool hasBiometricsEnabled)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String email,  String firstName,  String lastName,  UserRole role,  bool isFirstLogin)?  $default,) {final _that = this;
 switch (_that) {
 case _User() when $default != null:
-return $default(_that.id,_that.email,_that.name,_that.role,_that.isFirstLogin,_that.hasBiometricsEnabled);case _:
+return $default(_that.id,_that.email,_that.firstName,_that.lastName,_that.role,_that.isFirstLogin);case _:
   return null;
 
 }
@@ -210,16 +210,16 @@ return $default(_that.id,_that.email,_that.name,_that.role,_that.isFirstLogin,_t
 /// @nodoc
 
 
-class _User implements User {
-  const _User({required this.id, required this.email, required this.name, required this.role, this.isFirstLogin = false, this.hasBiometricsEnabled = false});
+class _User extends User {
+  const _User({required this.id, required this.email, required this.firstName, required this.lastName, required this.role, this.isFirstLogin = false}): super._();
   
 
 @override final  String id;
 @override final  String email;
-@override final  String name;
-@override final  String role;
+@override final  String firstName;
+@override final  String lastName;
+@override final  UserRole role;
 @override@JsonKey() final  bool isFirstLogin;
-@override@JsonKey() final  bool hasBiometricsEnabled;
 
 /// Create a copy of User
 /// with the given fields replaced by the non-null parameter values.
@@ -231,16 +231,16 @@ _$UserCopyWith<_User> get copyWith => __$UserCopyWithImpl<_User>(this, _$identit
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _User&&(identical(other.id, id) || other.id == id)&&(identical(other.email, email) || other.email == email)&&(identical(other.name, name) || other.name == name)&&(identical(other.role, role) || other.role == role)&&(identical(other.isFirstLogin, isFirstLogin) || other.isFirstLogin == isFirstLogin)&&(identical(other.hasBiometricsEnabled, hasBiometricsEnabled) || other.hasBiometricsEnabled == hasBiometricsEnabled));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _User&&(identical(other.id, id) || other.id == id)&&(identical(other.email, email) || other.email == email)&&(identical(other.firstName, firstName) || other.firstName == firstName)&&(identical(other.lastName, lastName) || other.lastName == lastName)&&(identical(other.role, role) || other.role == role)&&(identical(other.isFirstLogin, isFirstLogin) || other.isFirstLogin == isFirstLogin));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,id,email,name,role,isFirstLogin,hasBiometricsEnabled);
+int get hashCode => Object.hash(runtimeType,id,email,firstName,lastName,role,isFirstLogin);
 
 @override
 String toString() {
-  return 'User(id: $id, email: $email, name: $name, role: $role, isFirstLogin: $isFirstLogin, hasBiometricsEnabled: $hasBiometricsEnabled)';
+  return 'User(id: $id, email: $email, firstName: $firstName, lastName: $lastName, role: $role, isFirstLogin: $isFirstLogin)';
 }
 
 
@@ -251,7 +251,7 @@ abstract mixin class _$UserCopyWith<$Res> implements $UserCopyWith<$Res> {
   factory _$UserCopyWith(_User value, $Res Function(_User) _then) = __$UserCopyWithImpl;
 @override @useResult
 $Res call({
- String id, String email, String name, String role, bool isFirstLogin, bool hasBiometricsEnabled
+ String id, String email, String firstName, String lastName, UserRole role, bool isFirstLogin
 });
 
 
@@ -268,14 +268,14 @@ class __$UserCopyWithImpl<$Res>
 
 /// Create a copy of User
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? email = null,Object? name = null,Object? role = null,Object? isFirstLogin = null,Object? hasBiometricsEnabled = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? email = null,Object? firstName = null,Object? lastName = null,Object? role = null,Object? isFirstLogin = null,}) {
   return _then(_User(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,email: null == email ? _self.email : email // ignore: cast_nullable_to_non_nullable
-as String,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
+as String,firstName: null == firstName ? _self.firstName : firstName // ignore: cast_nullable_to_non_nullable
+as String,lastName: null == lastName ? _self.lastName : lastName // ignore: cast_nullable_to_non_nullable
 as String,role: null == role ? _self.role : role // ignore: cast_nullable_to_non_nullable
-as String,isFirstLogin: null == isFirstLogin ? _self.isFirstLogin : isFirstLogin // ignore: cast_nullable_to_non_nullable
-as bool,hasBiometricsEnabled: null == hasBiometricsEnabled ? _self.hasBiometricsEnabled : hasBiometricsEnabled // ignore: cast_nullable_to_non_nullable
+as UserRole,isFirstLogin: null == isFirstLogin ? _self.isFirstLogin : isFirstLogin // ignore: cast_nullable_to_non_nullable
 as bool,
   ));
 }

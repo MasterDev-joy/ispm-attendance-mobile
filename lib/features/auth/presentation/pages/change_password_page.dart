@@ -368,7 +368,7 @@ class _PageHeader extends StatelessWidget {
               children: [
                 const TextSpan(text: 'Bonjour '),
                 TextSpan(
-                  text: user.name,
+                  text: user.fullName,
                   style: const TextStyle(
                     color: ISPMColors.green,
                     fontWeight: FontWeight.w600,

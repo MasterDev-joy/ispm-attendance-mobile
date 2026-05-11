@@ -4,6 +4,30 @@ import '../../domain/entities/user.dart';
 part 'user_model.freezed.dart';
 part 'user_model.g.dart';
 
+class RoleConverter implements JsonConverter<UserRole, String> {
+  const RoleConverter();
+
+  @override
+  UserRole fromJson(String json) {
+    switch (json.toUpperCase()) {
+      case 'ADMIN':
+        return UserRole.admin;
+      case 'PROFESSOR':
+        return UserRole.professor;
+      case 'SUPERVISOR':
+        return UserRole.supervisor;
+      default:
+        return UserRole.unknown;
+    }
+  }
+
+  @override
+  String toJson(UserRole object) {
+    // Si un jour vous devez envoyer le rôle à l'API (ex: updateProfile)
+    return object.name.toUpperCase();
+  }
+}
+
 // DTO : ne doit JAMAIS hériter de l'entity User
 // Sa seule responsabilité : désérialiser le JSON et fournir toEntity()
 @freezed
@@ -13,9 +37,9 @@ abstract class UserModel with _$UserModel {
   const factory UserModel({
     required String id,
     required String email,
-    @JsonKey(name: 'firstName') required String firstName,
-    @JsonKey(name: 'lastName') required String lastName,
-    required String role,
+    required String firstName,
+    required String lastName,
+    @RoleConverter() required UserRole role,
     @Default(false) bool isFirstLogin,
   }) = _UserModel;
 
@@ -26,9 +50,9 @@ abstract class UserModel with _$UserModel {
   User toEntity() => User(
     id: id,
     email: email,
-    name: '$firstName $lastName',
+    firstName: firstName,
+    lastName: lastName,
     role: role,
     isFirstLogin: isFirstLogin,
-    hasBiometricsEnabled: false,
   );
 }

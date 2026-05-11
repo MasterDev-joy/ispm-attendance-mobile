@@ -33,8 +33,8 @@ Map<String, dynamic> _$SessionAttendanceModelToJson(
 };
 
 const _$AttendanceStatusEnumMap = {
-  AttendanceStatus.onTime: 'ON_TIME',
-  AttendanceStatus.absent: 'ABSENT',
+  AttendanceStatus.onTime: 'onTime',
+  AttendanceStatus.absent: 'absent',
 };
 
 _SupervisorModel _$SupervisorModelFromJson(Map<String, dynamic> json) =>

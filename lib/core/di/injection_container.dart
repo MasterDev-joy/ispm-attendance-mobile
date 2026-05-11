@@ -11,6 +11,9 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:get_it/get_it.dart';
 
 // ── Core ──────────────────────────────────────────────────────────────────────
+import '../../features/reports/data/repositories/report_repository_impl.dart';
+import '../../features/users_management/data/datasources/user_remote_datasource.dart';
+import '../../features/users_management/data/repositories/user_repository_impl.dart';
 import '../network/dio_client.dart';
 
 // ── Auth (inchangée — sera refactorisée séparément) ──────────────────────────
@@ -23,7 +26,7 @@ import '../../features/auth/presentation/blocs/auth_bloc.dart';
 // ── Attendance ────────────────────────────────────────────────────────────────
 import '../../features/attendance/data/datasources/attendance_remote_datasource.dart';
 import '../../features/attendance/data/repositories/attendance_repository_impl.dart';
-import '../../features/attendance/domain/repositories/repositories.dart';
+import '../../features/attendance/domain/repositories/attendance_repository.dart';
 import '../../features/attendance/presentation/blocs/attendance_bloc.dart';
 
 // ── Schedule ──────────────────────────────────────────────────────────────────
@@ -47,14 +50,11 @@ import '../../features/stats/presentation/blocs/stats_bloc.dart';
 
 // ── Admin / Reports ───────────────────────────────────────────────────────────
 import '../../features/reports/data/datasources/report_remote_datasource.dart';
-import '../../features/reports/data/repositories/report_repositories_impl.dart';
 import '../../features/reports/domain/repositories/report_repository.dart';
-import '../../features/reports/domain/usecases//report_usecases.dart';
 import '../../features/reports/presentation/blocs/report_bloc.dart';
 
 // ── Admin / Users ─────────────────────────────────────────────────────────────
 import '../../features/users_management/domain/repositories/user_repository.dart';
-import '../../features/users_management/domain/usecases/user_usecases.dart';
 import '../../features/users_management/presentation/blocs/user_bloc.dart';
 
 final sl = GetIt.instance;
@@ -69,9 +69,8 @@ Future<void> init() async {
 
   // ── 3. Auth — conservée telle quelle (refacto séparée) ─────────────────────
   sl.registerLazySingleton(() => http.Client());
-  sl.registerLazySingleton(() => AuthLocalDao(storage: sl()));
   sl.registerLazySingleton<AuthRepository>(
-    () => AuthRepositoryImpl(client: sl(), localDao: sl()),
+    () => AuthRepositoryImpl(sl(), sl()),
   );
 
   // ── 4. Datasources ──────────────────────────────────────────────────────────
@@ -87,8 +86,8 @@ Future<void> init() async {
   sl.registerLazySingleton<ReportRemoteDataSource>(
     () => ReportRemoteDataSourceImpl(sl()),
   );
-  sl.registerLazySingleton<AdminUserRemoteDataSource>(
-    () => AdminUserRemoteDataSourceImpl(sl()),
+  sl.registerLazySingleton<UserRemoteDataSource>(
+    () => UserRemoteDataSourceImpl(sl()),
   );
 
   // ── 5. Repositories ─────────────────────────────────────────────────────────
@@ -103,7 +102,7 @@ Future<void> init() async {
   sl.registerLazySingleton<ReportRepository>(() => ReportRepositoryImpl(sl()));
   sl.registerLazySingleton<UserRepository>(() => UserRepositoryImpl(sl()));
   sl.registerLazySingleton<NotificationRepository>(
-    () => NotificationRepositoryImpl(storage: sl()),
+    () => NotificationRepositoryImpl(sl()),
   );
 
   // ── 6. UseCases ─────────────────────────────────────────────────────────────

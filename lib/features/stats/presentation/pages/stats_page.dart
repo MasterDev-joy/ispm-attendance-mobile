@@ -17,6 +17,7 @@ import '../../../auth/presentation/blocs/auth_bloc.dart';
 import '../blocs/stats_bloc.dart';
 import '../../domain/entities/stats_data.dart';
 import '../../../home/presentation/widgets/shared/home_app_bar.dart';
+import '../../../auth/domain/entities/user.dart';
 
 const _kBlue = Color(0xFF378ADD);
 const _kAmber = Color(0xFFBA7517);
@@ -57,23 +58,11 @@ class _StatsPageState extends State<StatsPage>
     context.read<StatsBloc>().add(StatsEvent.changePeriod(p));
   }
 
-  UserRole _resolveRole(String raw) {
-    switch (raw.toLowerCase().trim()) {
-      case 'supervisor':
-      case 'superviseur':
-        return UserRole.supervisor;
-      case 'admin':
-      case 'administrator':
-        return UserRole.admin;
-      default:
-        return UserRole.professor;
-    }
-  }
-
   Color _accentFor(UserRole r) => switch (r) {
     UserRole.professor => ISPMColors.green,
     UserRole.supervisor => _kBlue,
     UserRole.admin => _kAmber,
+    UserRole.unknown => Colors.grey,
   };
 
   @override
@@ -81,7 +70,7 @@ class _StatsPageState extends State<StatsPage>
     return BlocBuilder<AuthBloc, AuthState>(
       builder: (context, authState) {
         final role = authState.maybeWhen(
-          authenticated: (user) => _resolveRole(user.role),
+          authenticated: (user) => user.role,
           orElse: () => UserRole.professor,
         );
         final accent = _accentFor(role);
@@ -203,6 +192,7 @@ class _StatsAppBar extends StatelessWidget {
     UserRole.professor => 'Mes statistiques',
     UserRole.supervisor => 'Mes scans',
     UserRole.admin => 'Statistiques globales',
+    UserRole.unknown => 'Inconnu',
   };
 
   @override

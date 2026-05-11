@@ -7,10 +7,9 @@
 
 import 'package:flutter/material.dart';
 import '../../../../../core/theme/app_theme.dart';
+import '../../../../auth/domain/entities/user.dart';
 
 // ── Modèle de configuration ──────────────────────────────────────────────────
-
-enum UserRole { professor, supervisor, admin }
 
 extension UserRoleX on UserRole {
   /// Couleur d'accent par rôle
@@ -18,6 +17,7 @@ extension UserRoleX on UserRole {
     UserRole.professor => ISPMColors.green,
     UserRole.supervisor => Color(0xFF378ADD),
     UserRole.admin => Color(0xFFBA7517),
+    UserRole.unknown => Colors.grey,
   };
 
   /// Label affiché dans le badge rôle
@@ -25,6 +25,7 @@ extension UserRoleX on UserRole {
     UserRole.professor => 'Professeur',
     UserRole.supervisor => 'Superviseur',
     UserRole.admin => 'Admin',
+    UserRole.unknown => 'Inconnu',
   };
 
   /// Icône du badge rôle
@@ -32,6 +33,7 @@ extension UserRoleX on UserRole {
     UserRole.professor => Icons.menu_book_rounded,
     UserRole.supervisor => Icons.qr_code_scanner_rounded,
     UserRole.admin => Icons.shield_rounded,
+    UserRole.unknown => Icons.help_outline,
   };
 }
 
@@ -141,10 +143,7 @@ class HomeAppBar extends StatelessWidget {
           const SizedBox(width: 6),
 
           // ── Bouton logout ────────────────────────────────────────
-          _AppBarAction(
-            icon: Icons.logout_rounded,
-            onTap: onLogoutTap,
-          ),
+          _AppBarAction(icon: Icons.logout_rounded, onTap: onLogoutTap),
         ],
       ),
     );
@@ -213,9 +212,7 @@ class _AppBarAction extends StatelessWidget {
             decoration: BoxDecoration(
               color: ISPMColors.white.withOpacity(0.07),
               borderRadius: BorderRadius.circular(10),
-              border: Border.all(
-                color: ISPMColors.white.withOpacity(0.09),
-              ),
+              border: Border.all(color: ISPMColors.white.withOpacity(0.09)),
             ),
             child: Icon(
               icon,

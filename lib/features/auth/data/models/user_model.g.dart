@@ -11,7 +11,7 @@ _UserModel _$UserModelFromJson(Map<String, dynamic> json) => _UserModel(
   email: json['email'] as String,
   firstName: json['firstName'] as String,
   lastName: json['lastName'] as String,
-  role: json['role'] as String,
+  role: const RoleConverter().fromJson(json['role'] as String),
   isFirstLogin: json['isFirstLogin'] as bool? ?? false,
 );
 
@@ -21,6 +21,6 @@ Map<String, dynamic> _$UserModelToJson(_UserModel instance) =>
       'email': instance.email,
       'firstName': instance.firstName,
       'lastName': instance.lastName,
-      'role': instance.role,
+      'role': const RoleConverter().toJson(instance.role),
       'isFirstLogin': instance.isFirstLogin,
     };

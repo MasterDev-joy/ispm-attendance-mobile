@@ -55,7 +55,7 @@ class _NotificationsPageState extends State<NotificationsPage>
     final user = authState.whenOrNull(authenticated: (u) => u);
     if (user == null) return ISPMColors.green;
 
-    return switch (user.role.toLowerCase().trim()) {
+    return switch (user.role.toString().toLowerCase()) {
       'supervisor' || 'superviseur' => _kBlue,
       'admin' || 'administrator' => _kAmber,
       _ => ISPMColors.green,

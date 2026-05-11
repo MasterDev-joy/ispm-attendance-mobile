@@ -15,7 +15,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$UserModel {
 
- String get id; String get email;@JsonKey(name: 'firstName') String get firstName;@JsonKey(name: 'lastName') String get lastName; String get role; bool get isFirstLogin;
+ String get id; String get email; String get firstName; String get lastName;@RoleConverter() UserRole get role; bool get isFirstLogin;
 /// Create a copy of UserModel
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -48,7 +48,7 @@ abstract mixin class $UserModelCopyWith<$Res>  {
   factory $UserModelCopyWith(UserModel value, $Res Function(UserModel) _then) = _$UserModelCopyWithImpl;
 @useResult
 $Res call({
- String id, String email,@JsonKey(name: 'firstName') String firstName,@JsonKey(name: 'lastName') String lastName, String role, bool isFirstLogin
+ String id, String email, String firstName, String lastName,@RoleConverter() UserRole role, bool isFirstLogin
 });
 
 
@@ -72,7 +72,7 @@ as String,email: null == email ? _self.email : email // ignore: cast_nullable_to
 as String,firstName: null == firstName ? _self.firstName : firstName // ignore: cast_nullable_to_non_nullable
 as String,lastName: null == lastName ? _self.lastName : lastName // ignore: cast_nullable_to_non_nullable
 as String,role: null == role ? _self.role : role // ignore: cast_nullable_to_non_nullable
-as String,isFirstLogin: null == isFirstLogin ? _self.isFirstLogin : isFirstLogin // ignore: cast_nullable_to_non_nullable
+as UserRole,isFirstLogin: null == isFirstLogin ? _self.isFirstLogin : isFirstLogin // ignore: cast_nullable_to_non_nullable
 as bool,
   ));
 }
@@ -158,7 +158,7 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String email, @JsonKey(name: 'firstName')  String firstName, @JsonKey(name: 'lastName')  String lastName,  String role,  bool isFirstLogin)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String email,  String firstName,  String lastName, @RoleConverter()  UserRole role,  bool isFirstLogin)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _UserModel() when $default != null:
 return $default(_that.id,_that.email,_that.firstName,_that.lastName,_that.role,_that.isFirstLogin);case _:
@@ -179,7 +179,7 @@ return $default(_that.id,_that.email,_that.firstName,_that.lastName,_that.role,_
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String email, @JsonKey(name: 'firstName')  String firstName, @JsonKey(name: 'lastName')  String lastName,  String role,  bool isFirstLogin)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String email,  String firstName,  String lastName, @RoleConverter()  UserRole role,  bool isFirstLogin)  $default,) {final _that = this;
 switch (_that) {
 case _UserModel():
 return $default(_that.id,_that.email,_that.firstName,_that.lastName,_that.role,_that.isFirstLogin);case _:
@@ -199,7 +199,7 @@ return $default(_that.id,_that.email,_that.firstName,_that.lastName,_that.role,_
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String email, @JsonKey(name: 'firstName')  String firstName, @JsonKey(name: 'lastName')  String lastName,  String role,  bool isFirstLogin)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String email,  String firstName,  String lastName, @RoleConverter()  UserRole role,  bool isFirstLogin)?  $default,) {final _that = this;
 switch (_that) {
 case _UserModel() when $default != null:
 return $default(_that.id,_that.email,_that.firstName,_that.lastName,_that.role,_that.isFirstLogin);case _:
@@ -214,14 +214,14 @@ return $default(_that.id,_that.email,_that.firstName,_that.lastName,_that.role,_
 @JsonSerializable()
 
 class _UserModel extends UserModel {
-  const _UserModel({required this.id, required this.email, @JsonKey(name: 'firstName') required this.firstName, @JsonKey(name: 'lastName') required this.lastName, required this.role, this.isFirstLogin = false}): super._();
+  const _UserModel({required this.id, required this.email, required this.firstName, required this.lastName, @RoleConverter() required this.role, this.isFirstLogin = false}): super._();
   factory _UserModel.fromJson(Map<String, dynamic> json) => _$UserModelFromJson(json);
 
 @override final  String id;
 @override final  String email;
-@override@JsonKey(name: 'firstName') final  String firstName;
-@override@JsonKey(name: 'lastName') final  String lastName;
-@override final  String role;
+@override final  String firstName;
+@override final  String lastName;
+@override@RoleConverter() final  UserRole role;
 @override@JsonKey() final  bool isFirstLogin;
 
 /// Create a copy of UserModel
@@ -257,7 +257,7 @@ abstract mixin class _$UserModelCopyWith<$Res> implements $UserModelCopyWith<$Re
   factory _$UserModelCopyWith(_UserModel value, $Res Function(_UserModel) _then) = __$UserModelCopyWithImpl;
 @override @useResult
 $Res call({
- String id, String email,@JsonKey(name: 'firstName') String firstName,@JsonKey(name: 'lastName') String lastName, String role, bool isFirstLogin
+ String id, String email, String firstName, String lastName,@RoleConverter() UserRole role, bool isFirstLogin
 });
 
 
@@ -281,7 +281,7 @@ as String,email: null == email ? _self.email : email // ignore: cast_nullable_to
 as String,firstName: null == firstName ? _self.firstName : firstName // ignore: cast_nullable_to_non_nullable
 as String,lastName: null == lastName ? _self.lastName : lastName // ignore: cast_nullable_to_non_nullable
 as String,role: null == role ? _self.role : role // ignore: cast_nullable_to_non_nullable
-as String,isFirstLogin: null == isFirstLogin ? _self.isFirstLogin : isFirstLogin // ignore: cast_nullable_to_non_nullable
+as UserRole,isFirstLogin: null == isFirstLogin ? _self.isFirstLogin : isFirstLogin // ignore: cast_nullable_to_non_nullable
 as bool,
   ));
 }

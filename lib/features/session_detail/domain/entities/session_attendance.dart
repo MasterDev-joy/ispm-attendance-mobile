@@ -3,7 +3,6 @@ import 'package:freezed_annotation/freezed_annotation.dart';
 
 part 'session_attendance.freezed.dart';
 
-@JsonEnum(fieldRename: FieldRename.screamingSnake)
 enum AttendanceStatus { onTime, absent }
 
 @freezed

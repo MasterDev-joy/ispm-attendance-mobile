@@ -1,48 +1,48 @@
 // lib/features/profile/presentation/pages/profile_page.dart
-//
-// ══════════════════════════════════════════════════════════════════════════════
-//  Page Profil — commune aux 3 rôles
-// ══════════════════════════════════════════════════════════════════════════════
-//
-// Contenu :
-//   • Carte identité (avatar, nom, email, rôle)
-//   • Métriques rapides (selon rôle)
-//   • Paramètres compte (changer mdp, biométrie)
-//   • Préférences app (notifications)
-//   • Bouton déconnexion
-//
-// Style dark cohérent avec la HomePage.
-// ─────────────────────────────────────────────────────────────────────────────
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:get_it/get_it.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/presentation/widgets/ispm_glow_blob.dart';
 import '../../../../core/presentation/widgets/ispm_mesh_grid.dart';
 import '../../../auth/domain/entities/user.dart';
+import '../../../auth/presentation/extensions/user_role_ext.dart.dart';
 import '../../../auth/presentation/blocs/auth_bloc.dart';
-import '../../../auth/presentation/blocs/auth_event.dart';
-import '../../../auth/presentation/blocs/auth_state.dart';
-import '../../../home/presentation/widgets/shared/home_app_bar.dart';
 import '../../../home/presentation/widgets/shared/home_logout_dialog.dart';
+import '../blocs/profile_bloc.dart';
 
 const _kBlue = Color(0xFF378ADD);
 const _kAmber = Color(0xFFBA7517);
 
-// ─────────────────────────────────────────────────────────────────────────────
-
-class ProfilePage extends StatefulWidget {
+class ProfilePage extends StatelessWidget {
   const ProfilePage({super.key});
 
   @override
-  State<ProfilePage> createState() => _ProfilePageState();
+  Widget build(BuildContext context) {
+    return BlocProvider(
+      // ✅ Injection via get_it + déclenchement immédiat du chargement
+      create: (_) =>
+          GetIt.I<ProfileBloc>()..add(const ProfileEvent.getProfileRequested()),
+      child: const _ProfileView(),
+    );
+  }
 }
 
-class _ProfilePageState extends State<ProfilePage>
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _ProfileView extends StatefulWidget {
+  const _ProfileView();
+
+  @override
+  State<_ProfileView> createState() => _ProfileViewState();
+}
+
+class _ProfileViewState extends State<_ProfileView>
     with SingleTickerProviderStateMixin {
-  late AnimationController _animCtrl;
+  late final AnimationController _animCtrl;
   bool _notificationsEnabled = true;
   bool _biometricsEnabled = false;
 
@@ -61,28 +61,12 @@ class _ProfilePageState extends State<ProfilePage>
     super.dispose();
   }
 
-  // ── Résolution rôle ───────────────────────────────────────────────────────
-
-  UserRole _resolveRole(String raw) {
-    switch (raw.toLowerCase().trim()) {
-      case 'supervisor':
-      case 'superviseur':
-        return UserRole.supervisor;
-      case 'admin':
-      case 'administrator':
-        return UserRole.admin;
-      default:
-        return UserRole.professor;
-    }
-  }
-
-  Color _accentFor(UserRole r) => switch (r) {
+  Color _accentFor(UserRole role) => switch (role) {
     UserRole.professor => ISPMColors.green,
     UserRole.supervisor => _kBlue,
     UserRole.admin => _kAmber,
+    UserRole.unknown => Colors.grey,
   };
-
-  // ── Animation staggerée ───────────────────────────────────────────────────
 
   Widget _stagger(int i, Widget child) {
     final start = (0.10 * i).clamp(0.0, 0.8);
@@ -104,205 +88,188 @@ class _ProfilePageState extends State<ProfilePage>
     );
   }
 
-  // ── Logout ────────────────────────────────────────────────────────────────
-
-  void _logout() {
+  void _logout(BuildContext context) {
     showLogoutDialog(
       context,
       onConfirm: () {
-        context.read<AuthBloc>().add(LogoutRequestedEvent());
-        Navigator.of(
-          context,
-        ).pushNamedAndRemoveUntil('/login', (route) => false);
+        context.read<AuthBloc>().add(AuthEvent.logoutRequested());
+        context.go('/login'); // ✅ GoRouter
       },
     );
   }
 
-  // ── Build ─────────────────────────────────────────────────────────────────
-
   @override
   Widget build(BuildContext context) {
-    return BlocBuilder<AuthBloc, AuthState>(
-      builder: (context, authState) {
-        if (authState is! AuthAuthenticated) {
-          return const Scaffold(
-            backgroundColor: ISPMColors.black,
-            body: Center(
-              child: CircularProgressIndicator(
-                color: ISPMColors.green,
-                strokeWidth: 2.5,
+    return BlocConsumer<ProfileBloc, ProfileState>(
+      listener: (ctx, state) {
+        state.whenOrNull(
+          error: (message) => ScaffoldMessenger.of(ctx).showSnackBar(
+            SnackBar(
+              content: Text(
+                message,
+                style: const TextStyle(fontFamily: 'Poppins'),
+              ),
+              backgroundColor: ISPMColors.error,
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
               ),
             ),
-          );
-        }
-
-        final user = authState.user;
-        final role = _resolveRole(user.role);
-        final accent = _accentFor(role);
-
-        // Sync biometrics depuis user
-        _biometricsEnabled = user.hasBiometricsEnabled;
-
-        return Scaffold(
-          backgroundColor: ISPMColors.black,
-          body: Stack(
-            children: [
-              // Background
-              Positioned(
-                top: -80,
-                right: -60,
-                child: IspmGlowBlob.circle(
-                  radius: 200,
-                  primaryColor: accent.withOpacity(0.09),
-                  secondaryColor: Colors.transparent,
-                ),
-              ),
-              Positioned(
-                bottom: -80,
-                left: -40,
-                child: IspmGlowBlob.circle(
-                  radius: 160,
-                  primaryColor: accent.withOpacity(0.06),
-                  secondaryColor: Colors.transparent,
-                ),
-              ),
-              const Positioned.fill(child: IspmMeshGrid()),
-
-              SafeArea(
-                bottom: false,
-                child: Column(
-                  children: [
-                    // AppBar
-                    _ProfileAppBar(
-                      accent: accent,
-                      onBack: () => Navigator.pop(context),
-                    ),
-
-                    Expanded(
-                      child: ListView(
-                        padding: const EdgeInsets.fromLTRB(16, 8, 16, 110),
-                        physics: const BouncingScrollPhysics(),
-                        children: [
-                          // ── Carte identité ─────────────────────────
-                          _stagger(
-                            0,
-                            _IdentityCard(
-                              user: user,
-                              role: role,
-                              accent: accent,
-                            ),
-                          ),
-
-                          const SizedBox(height: 24),
-
-                          // ── Métriques selon rôle ───────────────────
-                          _stagger(1, _RoleMetrics(role: role, accent: accent)),
-
-                          const SizedBox(height: 24),
-
-                          // ── Section compte ─────────────────────────
-                          _stagger(2, _SectionLabel(label: 'Compte')),
-                          const SizedBox(height: 10),
-
-                          _stagger(
-                            3,
-                            _ProfileMenuItem(
-                              icon: Icons.lock_outline_rounded,
-                              label: 'Changer le mot de passe',
-                              accent: accent,
-                              onTap: () => Navigator.pushNamed(
-                                context,
-                                '/change-password',
-                                arguments: user,
-                              ),
-                            ),
-                          ),
-
-                          _stagger(
-                            4,
-                            _ProfileMenuToggle(
-                              icon: Icons.fingerprint_rounded,
-                              label: 'Authentification biométrique',
-                              subtitle: 'Empreinte digitale / Face ID',
-                              accent: accent,
-                              value: _biometricsEnabled,
-                              onChanged: (v) {
-                                setState(() => _biometricsEnabled = v);
-                                HapticFeedback.selectionClick();
-                              },
-                            ),
-                          ),
-
-                          const SizedBox(height: 20),
-
-                          // ── Section préférences ────────────────────
-                          _stagger(5, _SectionLabel(label: 'Préférences')),
-                          const SizedBox(height: 10),
-
-                          _stagger(
-                            6,
-                            _ProfileMenuToggle(
-                              icon: Icons.notifications_outlined,
-                              label: 'Notifications',
-                              subtitle: 'Alertes cours & présences',
-                              accent: accent,
-                              value: _notificationsEnabled,
-                              onChanged: (v) {
-                                setState(() => _notificationsEnabled = v);
-                                HapticFeedback.selectionClick();
-                              },
-                            ),
-                          ),
-
-                          _stagger(
-                            7,
-                            _ProfileMenuItem(
-                              icon: Icons.info_outline_rounded,
-                              label: 'À propos de l\'application',
-                              accent: accent,
-                              trailing: Text(
-                                'v1.0.0',
-                                style: TextStyle(
-                                  fontFamily: 'Poppins',
-                                  fontSize: 12,
-                                  color: ISPMColors.white.withOpacity(0.30),
-                                ),
-                              ),
-                              onTap: () => _showAboutDialog(context, accent),
-                            ),
-                          ),
-
-                          const SizedBox(height: 28),
-
-                          // ── Bouton déconnexion ─────────────────────
-                          _stagger(8, _LogoutButton(onTap: _logout)),
-
-                          const SizedBox(height: 16),
-
-                          // ── ID utilisateur ─────────────────────────
-                          _stagger(
-                            9,
-                            Center(
-                              child: Text(
-                                'ID: ${user.id}',
-                                style: TextStyle(
-                                  fontFamily: 'Poppins',
-                                  fontSize: 10,
-                                  color: ISPMColors.white.withOpacity(0.18),
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
           ),
         );
       },
+      builder: (ctx, state) {
+        return state.when(
+          initial: () =>
+              _scaffold(accent: ISPMColors.green, child: _loadingBody()),
+          loading: () =>
+              _scaffold(accent: ISPMColors.green, child: _loadingBody()),
+          error: (_) =>
+              _scaffold(accent: ISPMColors.green, child: _loadingBody()),
+          loaded: (user, isUpdating) {
+            final accent = _accentFor(user.role);
+            return _scaffold(
+              accent: accent,
+              child: _body(ctx, user, accent, isUpdating),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget _loadingBody() => const Center(
+    child: CircularProgressIndicator(color: ISPMColors.green, strokeWidth: 2.5),
+  );
+
+  Widget _scaffold({required Color accent, required Widget child}) {
+    return Scaffold(
+      backgroundColor: ISPMColors.black,
+      body: Stack(
+        children: [
+          Positioned(
+            top: -80,
+            right: -60,
+            child: IspmGlowBlob.circle(
+              radius: 200,
+              primaryColor: accent.withOpacity(0.09),
+              secondaryColor: Colors.transparent,
+            ),
+          ),
+          Positioned(
+            bottom: -80,
+            left: -40,
+            child: IspmGlowBlob.circle(
+              radius: 160,
+              primaryColor: accent.withOpacity(0.06),
+              secondaryColor: Colors.transparent,
+            ),
+          ),
+          const Positioned.fill(child: IspmMeshGrid()),
+          SafeArea(
+            bottom: false,
+            child: Column(
+              children: [
+                _ProfileAppBar(
+                  accent: accent,
+                  onBack: () => context.pop(), // ✅ GoRouter
+                ),
+                Expanded(child: child),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _body(BuildContext context, User user, Color accent, bool isUpdating) {
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 110),
+      physics: const BouncingScrollPhysics(),
+      children: [
+        _stagger(0, _IdentityCard(user: user, accent: accent)),
+        const SizedBox(height: 24),
+        _stagger(1, _RoleMetrics(role: user.role, accent: accent)),
+        const SizedBox(height: 24),
+        _stagger(2, const _SectionLabel(label: 'Compte')),
+        const SizedBox(height: 10),
+        _stagger(
+          3,
+          _ProfileMenuItem(
+            icon: Icons.lock_outline_rounded,
+            label: 'Changer le mot de passe',
+            accent: accent,
+            // ✅ GoRouter
+            onTap: () => context.push('/change-password', extra: user),
+          ),
+        ),
+        _stagger(
+          4,
+          _ProfileMenuToggle(
+            icon: Icons.fingerprint_rounded,
+            label: 'Authentification biométrique',
+            subtitle: 'Empreinte digitale / Face ID',
+            accent: accent,
+            value: _biometricsEnabled,
+            onChanged: (v) {
+              setState(() => _biometricsEnabled = v);
+              HapticFeedback.selectionClick();
+              // TODO: persister dans SharedPreferences
+            },
+          ),
+        ),
+        const SizedBox(height: 20),
+        _stagger(5, const _SectionLabel(label: 'Préférences')),
+        const SizedBox(height: 10),
+        _stagger(
+          6,
+          _ProfileMenuToggle(
+            icon: Icons.notifications_outlined,
+            label: 'Notifications',
+            subtitle: 'Alertes cours & présences',
+            accent: accent,
+            value: _notificationsEnabled,
+            onChanged: (v) {
+              setState(() => _notificationsEnabled = v);
+              HapticFeedback.selectionClick();
+            },
+          ),
+        ),
+        _stagger(
+          7,
+          _ProfileMenuItem(
+            icon: Icons.info_outline_rounded,
+            label: 'À propos de l\'application',
+            accent: accent,
+            trailing: Text(
+              'v1.0.0',
+              style: TextStyle(
+                fontFamily: 'Poppins',
+                fontSize: 12,
+                color: ISPMColors.white.withOpacity(0.30),
+              ),
+            ),
+            onTap: () => _showAboutDialog(context, accent),
+          ),
+        ),
+        const SizedBox(height: 28),
+        _stagger(8, _LogoutButton(onTap: () => _logout(context))),
+        const SizedBox(height: 16),
+        _stagger(
+          9,
+          Center(
+            child: Text(
+              'ID: ${user.id}',
+              style: TextStyle(
+                fontFamily: 'Poppins',
+                fontSize: 10,
+                color: ISPMColors.white.withOpacity(0.18),
+              ),
+            ),
+          ),
+        ),
+      ],
     );
   }
 
@@ -350,8 +317,8 @@ class _ProfilePageState extends State<ProfilePage>
               ),
               const SizedBox(height: 16),
               Text(
-                'Système de gestion des présences du personnel de l\'Institut '
-                'Supérieur Polytechnique de Madagascar.',
+                'Système de gestion des présences du personnel de '
+                'l\'Institut Supérieur Polytechnique de Madagascar.',
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontFamily: 'Poppins',
@@ -362,7 +329,7 @@ class _ProfilePageState extends State<ProfilePage>
               ),
               const SizedBox(height: 20),
               GestureDetector(
-                onTap: () => Navigator.pop(context),
+                onTap: () => context.pop(), // ✅ GoRouter
                 child: Container(
                   padding: const EdgeInsets.symmetric(
                     horizontal: 24,
@@ -393,7 +360,7 @@ class _ProfilePageState extends State<ProfilePage>
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-//  AppBar profil
+//  Widgets réutilisables — inchangés sauf user.name → user.fullName
 // ─────────────────────────────────────────────────────────────────────────────
 
 class _ProfileAppBar extends StatelessWidget {
@@ -442,25 +409,18 @@ class _ProfileAppBar extends StatelessWidget {
   }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-//  Carte identité
-// ─────────────────────────────────────────────────────────────────────────────
-
 class _IdentityCard extends StatelessWidget {
   final User user;
-  final UserRole role;
   final Color accent;
-  const _IdentityCard({
-    required this.user,
-    required this.role,
-    required this.accent,
-  });
-
-  String get _initial =>
-      user.name.trim().isNotEmpty ? user.name.trim()[0].toUpperCase() : '?';
+  const _IdentityCard({required this.user, required this.accent});
 
   @override
   Widget build(BuildContext context) {
+    // ✅ user.fullName via le getter, initiale depuis firstName
+    final initial = user.firstName.trim().isNotEmpty
+        ? user.firstName.trim()[0].toUpperCase()
+        : '?';
+
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -477,7 +437,6 @@ class _IdentityCard extends StatelessWidget {
       ),
       child: Column(
         children: [
-          // Avatar large
           Stack(
             alignment: Alignment.bottomRight,
             children: [
@@ -501,7 +460,7 @@ class _IdentityCard extends StatelessWidget {
                 ),
                 child: Center(
                   child: Text(
-                    _initial,
+                    initial,
                     style: TextStyle(
                       fontFamily: 'Poppins',
                       fontSize: 32,
@@ -511,7 +470,6 @@ class _IdentityCard extends StatelessWidget {
                   ),
                 ),
               ),
-              // Indicateur rôle
               Container(
                 width: 26,
                 height: 26,
@@ -520,16 +478,19 @@ class _IdentityCard extends StatelessWidget {
                   shape: BoxShape.circle,
                   border: Border.all(color: ISPMColors.grey900, width: 2),
                 ),
-                child: Icon(role.roleIcon, size: 12, color: ISPMColors.white),
+                // ✅ user.role est maintenant un enum — roleIcon via extension
+                child: Icon(
+                  user.role.roleIcon,
+                  size: 12,
+                  color: ISPMColors.white,
+                ),
               ),
             ],
           ),
-
           const SizedBox(height: 16),
-
-          // Nom
+          // ✅ fullName au lieu de name
           Text(
-            user.name,
+            user.fullName,
             style: const TextStyle(
               fontFamily: 'Poppins',
               fontSize: 20,
@@ -537,10 +498,7 @@ class _IdentityCard extends StatelessWidget {
               color: ISPMColors.white,
             ),
           ),
-
           const SizedBox(height: 4),
-
-          // Email
           Text(
             user.email,
             style: TextStyle(
@@ -549,10 +507,7 @@ class _IdentityCard extends StatelessWidget {
               color: ISPMColors.white.withOpacity(0.45),
             ),
           ),
-
           const SizedBox(height: 12),
-
-          // Badge rôle
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
             decoration: BoxDecoration(
@@ -563,10 +518,11 @@ class _IdentityCard extends StatelessWidget {
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(role.roleIcon, size: 13, color: accent),
+                Icon(user.role.roleIcon, size: 13, color: accent),
                 const SizedBox(width: 6),
+                // ✅ roleLabel via extension sur UserRole
                 Text(
-                  role.roleLabel,
+                  user.role.roleLabel,
                   style: TextStyle(
                     fontFamily: 'Poppins',
                     fontSize: 12,
@@ -646,6 +602,7 @@ class _RoleMetrics extends StatelessWidget {
           label: 'Taux global',
         ),
       ],
+      UserRole.unknown => [],
     };
 
     return Row(
@@ -836,7 +793,6 @@ class _ProfileMenuItem extends StatelessWidget {
     );
   }
 }
-
 // ─────────────────────────────────────────────────────────────────────────────
 //  Item de menu avec toggle Switch
 // ─────────────────────────────────────────────────────────────────────────────

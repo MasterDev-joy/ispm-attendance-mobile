@@ -1,43 +1,38 @@
-// lib/features/admin/presentation/pages/settings_page.dart
-//
-// Page Paramètres système — Admin uniquement.
-// Sections : Serveur · Sécurité · Base de données · Danger zone
-// ─────────────────────────────────────────────────────────────────────────────
-
-import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import 'package:http/http.dart' as http;
-
+import 'package:flutter_bloc/flutter_bloc.dart';
+import '../../../../core/di/injection_container.dart';
 import '../../../../core/theme/app_theme.dart';
-import '../../../../core/config/app_config.dart';
 import '../../../../core/presentation/widgets/ispm_glow_blob.dart';
 import '../../../../core/presentation/widgets/ispm_mesh_grid.dart';
-import '../../../users_management/presentation/pages/users_page.dart'
-    show AdminAppBar;
+import 'package:ispm_attendance/core/presentation/shared_widgets/admin_shared_widgets.dart';
+
+import '../blocs/settings_cubit.dart';
+import '../blocs/settings_state.dart';
 
 const _kAmber = Color(0xFFBA7517);
 
-class SettingsPage extends StatefulWidget {
+class SettingsPage extends StatelessWidget {
   const SettingsPage({super.key});
 
   @override
-  State<SettingsPage> createState() => _SettingsPageState();
+  Widget build(BuildContext context) {
+    return BlocProvider(
+      create: (_) => sl<SettingsCubit>(),
+      child: const _SettingsView(),
+    );
+  }
 }
 
-class _SettingsPageState extends State<SettingsPage>
+class _SettingsView extends StatefulWidget {
+  const _SettingsView();
+  @override
+  State<_SettingsView> createState() => _SettingsViewState();
+}
+
+class _SettingsViewState extends State<_SettingsView>
     with SingleTickerProviderStateMixin {
   late AnimationController _animCtrl;
-  bool _serverOk = false;
-  bool _checkingServer = false;
-  String _serverStatus = 'Non vérifié';
-  bool _qrRotationEnabled = true;
-  int _qrDurationSec = 14;
-  bool _requireBiometrics = false;
-  bool _maintenanceMode = false;
-
-  final _storage = const FlutterSecureStorage();
 
   @override
   void initState() {
@@ -46,7 +41,6 @@ class _SettingsPageState extends State<SettingsPage>
       vsync: this,
       duration: const Duration(milliseconds: 650),
     )..forward();
-    _checkServer();
   }
 
   @override
@@ -62,95 +56,26 @@ class _SettingsPageState extends State<SettingsPage>
         parent: _animCtrl,
         curve: Interval(start, 1.0, curve: Curves.easeOut),
       ),
-      child: SlideTransition(
-        position: Tween<Offset>(begin: const Offset(0, 0.08), end: Offset.zero)
-            .animate(
-              CurvedAnimation(
-                parent: _animCtrl,
-                curve: Interval(start, 1.0, curve: Curves.easeOutCubic),
-              ),
-            ),
-        child: child,
-      ),
+      child: child,
     );
   }
 
-  // ── Health check ──────────────────────────────────────────────────────────
-
-  Future<void> _checkServer() async {
-    setState(() {
-      _checkingServer = true;
-      _serverStatus = 'Vérification…';
-    });
-    try {
-      final res = await http
-          .get(Uri.parse('${AppConfig.baseUrl}/api/health'))
-          .timeout(const Duration(seconds: 5));
-      if (res.statusCode == 200) {
-        final data = jsonDecode(res.body);
-        setState(() {
-          _serverOk = true;
-          _serverStatus = data['message'] ?? 'Opérationnel';
-          _checkingServer = false;
-        });
-      } else {
-        setState(() {
-          _serverOk = false;
-          _serverStatus = 'Erreur ${res.statusCode}';
-          _checkingServer = false;
-        });
-      }
-    } catch (e) {
-      setState(() {
-        _serverOk = false;
-        _serverStatus = 'Hors ligne';
-        _checkingServer = false;
-      });
-    }
-  }
-
-  Future<void> _resetDatabase() async {
+  Future<void> _confirmReset(BuildContext context) async {
+    final cubit = context.read<SettingsCubit>();
     final confirmed =
         await showDialog<bool>(
           context: context,
           barrierColor: Colors.black.withOpacity(0.65),
           builder: (_) => _DangerDialog(
             title: 'Réinitialiser la base de données',
-            message:
-                'Cette action supprimera TOUTES les présences enregistrées. '
-                'Les utilisateurs et cours seront conservés. Irréversible.',
+            message: 'Supprimera TOUTES les présences. Irréversible.',
             confirmLabel: 'Réinitialiser',
             onConfirm: () => Navigator.pop(context, true),
             onCancel: () => Navigator.pop(context, false),
           ),
         ) ??
         false;
-
-    if (!confirmed) return;
-
-    try {
-      final token = await _storage.read(key: 'jwt_token');
-      await http.delete(
-        Uri.parse('${AppConfig.baseUrl}/api/admin/reset-attendance'),
-        headers: {'Authorization': 'Bearer $token'},
-      );
-      if (mounted)
-        _showSnack('Base de données réinitialisée', ISPMColors.green);
-    } catch (_) {
-      if (mounted)
-        _showSnack('Erreur lors de la réinitialisation', ISPMColors.error);
-    }
-  }
-
-  void _showSnack(String msg, Color color) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(msg, style: const TextStyle(fontFamily: 'Poppins')),
-        backgroundColor: color,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      ),
-    );
+    if (confirmed) cubit.resetAttendance();
   }
 
   @override
@@ -169,7 +94,6 @@ class _SettingsPageState extends State<SettingsPage>
             ),
           ),
           const Positioned.fill(child: IspmMeshGrid()),
-
           SafeArea(
             bottom: false,
             child: Column(
@@ -179,184 +103,138 @@ class _SettingsPageState extends State<SettingsPage>
                   subtitle: 'Configuration de l\'application',
                   onBack: () => Navigator.pop(context),
                 ),
-
                 Expanded(
-                  child: ListView(
-                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 110),
-                    physics: const BouncingScrollPhysics(),
-                    children: [
-                      // ── Statut serveur ──────────────────────────────────
-                      _stagger(0, _SectionLabel(label: 'Serveur')),
-                      const SizedBox(height: 10),
-                      _stagger(
-                        1,
-                        _ServerStatusCard(
-                          baseUrl: AppConfig.baseUrl,
-                          isOk: _serverOk,
-                          status: _serverStatus,
-                          checking: _checkingServer,
-                          onCheck: _checkServer,
-                        ),
-                      ),
-
-                      const SizedBox(height: 24),
-
-                      // ── Paramètres QR ────────────────────────────────────
-                      _stagger(2, _SectionLabel(label: 'Code QR')),
-                      const SizedBox(height: 10),
-
-                      _stagger(
-                        3,
-                        _SettingsToggle(
-                          icon: Icons.rotate_right_rounded,
-                          label: 'Rotation automatique',
-                          subtitle:
-                              'Régénère le QR toutes les $_qrDurationSec secondes',
-                          value: _qrRotationEnabled,
-                          accent: _kAmber,
-                          onChanged: (v) {
-                            setState(() => _qrRotationEnabled = v);
-                            HapticFeedback.selectionClick();
-                            _showSnack(
-                              'Ce paramètre sera persisté dans une prochaine version',
-                              _kAmber,
-                            ); // ← ajouter
-                          },
-                        ),
-                      ),
-
-                      _stagger(
-                        4,
-                        _SettingsSlider(
-                          icon: Icons.timer_rounded,
-                          label: 'Durée de validité du QR',
-                          value: _qrDurationSec.toDouble(),
-                          min: 5,
-                          max: 60,
-                          divisions: 11,
-                          suffix: 'sec',
-                          accent: _kAmber,
-                          onChanged: (v) {
-                            setState(() => _qrDurationSec = v.round());
-                            _showSnack(
-                              'Ce paramètre sera persisté dans une prochaine version',
-                              _kAmber,
-                            ); // ← ajouter
-                          },
-                        ),
-                      ),
-
-                      const SizedBox(height: 24),
-
-                      // ── Sécurité ─────────────────────────────────────────
-                      _stagger(5, _SectionLabel(label: 'Sécurité')),
-                      const SizedBox(height: 10),
-
-                      _stagger(
-                        6,
-                        _SettingsToggle(
-                          icon: Icons.fingerprint_rounded,
-                          label: 'Biométrie obligatoire',
-                          subtitle: 'Force l\'empreinte digitale pour tous',
-                          value: _requireBiometrics,
-                          accent: _kAmber,
-                          onChanged: (v) {
-                            setState(() => _requireBiometrics = v);
-                            HapticFeedback.selectionClick();
-                            _showSnack(
-                              'Ce paramètre sera persisté dans une prochaine version',
-                              _kAmber,
-                            ); // ← ajouter
-                          },
-                        ),
-                      ),
-
-                      _stagger(
-                        7,
-                        _SettingsItem(
-                          icon: Icons.key_rounded,
-                          label: 'Rotation des clés JWT',
-                          subtitle: 'Expire tous les tokens actifs',
-                          accent: _kAmber,
-                          onTap: () => _showSnack(
-                            'Rotation planifiée au prochain redémarrage',
-                            _kAmber,
+                  child: BlocBuilder<SettingsCubit, SettingsState>(
+                    builder: (context, state) {
+                      final cubit = context.read<SettingsCubit>();
+                      return ListView(
+                        padding: const EdgeInsets.fromLTRB(16, 8, 16, 110),
+                        physics: const BouncingScrollPhysics(),
+                        children: [
+                          _stagger(0, _SectionLabel(label: 'Serveur')),
+                          const SizedBox(height: 10),
+                          _stagger(
+                            1,
+                            _ServerStatusCard(
+                              baseUrl: state.serverStatus?.baseUrl ?? '',
+                              isOk: state.serverStatus?.isOnline ?? false,
+                              status:
+                                  state.serverStatus?.message ?? 'Non vérifié',
+                              checking: state.isCheckingServer,
+                              onCheck: cubit.checkServer,
+                            ),
                           ),
-                        ),
-                      ),
-
-                      const SizedBox(height: 24),
-
-                      // ── Maintenance ──────────────────────────────────────
-                      _stagger(8, _SectionLabel(label: 'Maintenance')),
-                      const SizedBox(height: 10),
-
-                      _stagger(
-                        9,
-                        _SettingsToggle(
-                          icon: Icons.construction_rounded,
-                          label: 'Mode maintenance',
-                          subtitle:
-                              'Bloque l\'accès aux professeurs et superviseurs',
-                          value: _maintenanceMode,
-                          accent: ISPMColors.error,
-                          onChanged: (v) {
-                            setState(() => _maintenanceMode = v);
-                            HapticFeedback.mediumImpact();
-                            _showSnack(
-                              v
-                                  ? 'Mode maintenance activé (non persisté — redémarrez le serveur)'
-                                  : 'Mode maintenance désactivé',
-                              v ? ISPMColors.error : ISPMColors.green,
-                            );
-                          },
-                        ),
-                      ),
-
-                      _stagger(
-                        10,
-                        _SettingsItem(
-                          icon: Icons.storage_rounded,
-                          label: 'Sauvegarde des données',
-                          subtitle: 'Exporter une copie de la base de données',
-                          accent: _kAmber,
-                          onTap: () => _showSnack(
-                            'Export lancé en arrière-plan',
-                            _kAmber,
+                          const SizedBox(height: 24),
+                          _stagger(2, const _SectionLabel(label: 'Code QR')),
+                          const SizedBox(height: 10),
+                          _stagger(
+                            3,
+                            _SettingsToggle(
+                              icon: Icons.rotate_right_rounded,
+                              label: 'Rotation automatique',
+                              subtitle:
+                                  'Régénère le QR toutes les ${state.qrDurationSec}s',
+                              value: state.qrRotationEnabled,
+                              accent: _kAmber,
+                              onChanged: cubit.toggleQrRotation,
+                            ),
                           ),
-                        ),
-                      ),
-
-                      const SizedBox(height: 24),
-
-                      // ── App info ─────────────────────────────────────────
-                      _stagger(11, _SectionLabel(label: 'Application')),
-                      const SizedBox(height: 10),
-
-                      _stagger(12, _InfoCard()),
-
-                      const SizedBox(height: 24),
-
-                      // ── Zone danger ──────────────────────────────────────
-                      _stagger(
-                        13,
-                        _SectionLabel(
-                          label: 'Zone danger',
-                          color: ISPMColors.error,
-                        ),
-                      ),
-                      const SizedBox(height: 10),
-
-                      _stagger(
-                        14,
-                        _DangerButton(
-                          icon: Icons.delete_sweep_rounded,
-                          label: 'Réinitialiser les présences',
-                          subtitle: 'Supprime toutes les données d\'attendance',
-                          onTap: _resetDatabase,
-                        ),
-                      ),
-                    ],
+                          _stagger(
+                            4,
+                            _SettingsSlider(
+                              icon: Icons.timer_rounded,
+                              label: 'Durée de validité du QR',
+                              value: state.qrDurationSec.toDouble(),
+                              min: 5,
+                              max: 60,
+                              divisions: 11,
+                              suffix: 'sec',
+                              accent: _kAmber,
+                              onChanged: (v) => cubit.setQrDuration(v.round()),
+                            ),
+                          ),
+                          const SizedBox(height: 24),
+                          _stagger(5, const _SectionLabel(label: 'Sécurité')),
+                          const SizedBox(height: 10),
+                          _stagger(
+                            6,
+                            _SettingsToggle(
+                              icon: Icons.fingerprint_rounded,
+                              label: 'Biométrie obligatoire',
+                              subtitle: 'Force l\'empreinte digitale pour tous',
+                              value: state.requireBiometrics,
+                              accent: _kAmber,
+                              onChanged: cubit.toggleBiometrics,
+                            ),
+                          ),
+                          _stagger(
+                            7,
+                            _SettingsItem(
+                              icon: Icons.key_rounded,
+                              label: 'Rotation des clés JWT',
+                              subtitle: 'Expire tous les tokens actifs',
+                              accent: _kAmber,
+                              onTap: () {},
+                            ),
+                          ),
+                          const SizedBox(height: 24),
+                          _stagger(
+                            8,
+                            const _SectionLabel(label: 'Maintenance'),
+                          ),
+                          const SizedBox(height: 10),
+                          _stagger(
+                            9,
+                            _SettingsToggle(
+                              icon: Icons.construction_rounded,
+                              label: 'Mode maintenance',
+                              subtitle:
+                                  'Bloque l\'accès aux professeurs et superviseurs',
+                              value: state.maintenanceMode,
+                              accent: ISPMColors.error,
+                              onChanged: cubit.toggleMaintenance,
+                            ),
+                          ),
+                          _stagger(
+                            10,
+                            _SettingsItem(
+                              icon: Icons.storage_rounded,
+                              label: 'Sauvegarde des données',
+                              subtitle:
+                                  'Exporter une copie de la base de données',
+                              accent: _kAmber,
+                              onTap: () {},
+                            ),
+                          ),
+                          const SizedBox(height: 24),
+                          _stagger(
+                            11,
+                            const _SectionLabel(label: 'Application'),
+                          ),
+                          const SizedBox(height: 10),
+                          _stagger(12, _InfoCard()),
+                          const SizedBox(height: 24),
+                          _stagger(
+                            13,
+                            _SectionLabel(
+                              label: 'Zone danger',
+                              color: ISPMColors.error,
+                            ),
+                          ),
+                          const SizedBox(height: 10),
+                          _stagger(
+                            14,
+                            _DangerButton(
+                              icon: Icons.delete_sweep_rounded,
+                              label: 'Réinitialiser les présences',
+                              subtitle:
+                                  'Supprime toutes les données d\'attendance',
+                              onTap: () => _confirmReset(context),
+                            ),
+                          ),
+                        ],
+                      );
+                    },
                   ),
                 ),
               ],
@@ -367,7 +245,6 @@ class _SettingsPageState extends State<SettingsPage>
     );
   }
 }
-
 // ─────────────────────────────────────────────────────────────────────────────
 //  Widgets
 // ─────────────────────────────────────────────────────────────────────────────
@@ -547,8 +424,17 @@ class _ServerStatusCard extends StatelessWidget {
                 ),
               ),
               GestureDetector(
-                onTap: () {
-                  Clipboard.setData(ClipboardData(text: baseUrl));
+                onTap: () async {
+                  await Clipboard.setData(ClipboardData(text: baseUrl));
+                  // Vérifie si le contexte est toujours monté avant d'afficher le SnackBar
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text("Lien copié !"),
+                        duration: Duration(seconds: 1),
+                      ),
+                    );
+                  }
                 },
                 child: Icon(
                   Icons.copy_rounded,

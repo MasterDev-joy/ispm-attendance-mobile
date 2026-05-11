@@ -28,6 +28,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/presentation/widgets/ispm_glow_blob.dart';
 import '../../../../core/presentation/widgets/ispm_mesh_grid.dart';
+import '../../../auth/domain/entities/user.dart';
 
 import '../../../auth/presentation/blocs/auth_bloc.dart';
 import '../../../schedule/presentation/blocs/schedule_bloc.dart';
@@ -122,23 +123,11 @@ class _SchedulePageState extends State<SchedulePage>
       all.where((c) => _isSameDay(c.startTime, _selectedDay)).toList()
         ..sort((a, b) => a.startTime.compareTo(b.startTime));
 
-  UserRole _resolveRole(String raw) {
-    switch (raw.toLowerCase().trim()) {
-      case 'supervisor':
-      case 'superviseur':
-        return UserRole.supervisor;
-      case 'admin':
-      case 'administrator':
-        return UserRole.admin;
-      default:
-        return UserRole.professor;
-    }
-  }
-
   Color _accentFor(UserRole r) => switch (r) {
     UserRole.professor => ISPMColors.green,
     UserRole.supervisor => _kBlue,
     UserRole.admin => _kAmber,
+    UserRole.unknown => Colors.grey,
   };
 
   // ── Build ──────────────────────────────────────────────────────────────────
@@ -148,11 +137,11 @@ class _SchedulePageState extends State<SchedulePage>
     return BlocBuilder<AuthBloc, AuthState>(
       builder: (context, authState) {
         final userName = authState.maybeWhen(
-          authenticated: (user) => user.name,
+          authenticated: (user) => user.fullName,
           orElse: () => '',
         );
         final role = authState.maybeWhen(
-          authenticated: (user) => _resolveRole(user.role),
+          authenticated: (user) => user.role,
           orElse: () => UserRole.professor,
         );
 
@@ -609,6 +598,9 @@ class _CourseTimeline extends StatelessWidget {
               progress: cur ? progress(c) : null,
               fmt: fmt,
             );
+          case UserRole.unknown:
+            // Fallback obligatoire : On n'affiche rien si le rôle est inconnu
+            card = const SizedBox.shrink();
         }
 
         return _stagger(i, card);
