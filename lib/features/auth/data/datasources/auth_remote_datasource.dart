@@ -1,6 +1,6 @@
+// lib/features/auth/data/datasources/auth_remote_datasource.dart
 import 'package:dio/dio.dart';
 import 'package:injectable/injectable.dart';
-import '../../../../core/config/app_config.dart';
 import '../models/user_model.dart';
 
 abstract class AuthRemoteDataSource {
@@ -20,7 +20,7 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
     String password,
   ) async {
     final response = await _dio.post(
-      '${AppConfig.baseUrl}/api/auth/login',
+      '/api/auth/login',
       data: {'email': email, 'password': password},
     );
     return (
@@ -32,7 +32,7 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
   @override
   Future<({UserModel user, String token})> getCurrentUser(String token) async {
     final response = await _dio.get(
-      '${AppConfig.baseUrl}/api/auth/me',
+      '/api/auth/me',
       options: Options(headers: {'Authorization': 'Bearer $token'}),
     );
     return (
@@ -48,7 +48,7 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
     String token,
   ) async {
     await _dio.post(
-      '${AppConfig.baseUrl}/api/auth/change-password',
+      '/api/auth/change-password',
       data: {'newPassword': newPassword},
       options: Options(headers: {'Authorization': 'Bearer $token'}),
     );

@@ -12,7 +12,7 @@ abstract class StatsRemoteDataSource {
 @LazySingleton(as: StatsRemoteDataSource)
 class StatsRemoteDataSourceImpl implements StatsRemoteDataSource {
   final Dio _dio;
-  StatsRemoteDataSourceImpl(DioClient client) : _dio = client.dio;
+  StatsRemoteDataSourceImpl(this._dio);
 
   @override
   Future<GlobalStats> fetchStats(StatsPeriod period) async {

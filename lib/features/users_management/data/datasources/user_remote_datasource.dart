@@ -23,7 +23,7 @@ abstract class UserRemoteDataSource {
 @LazySingleton(as: UserRemoteDataSource)
 class UserRemoteDataSourceImpl implements UserRemoteDataSource {
   final Dio _dio;
-  UserRemoteDataSourceImpl(DioClient client) : _dio = client.dio;
+  UserRemoteDataSourceImpl(this._dio);
 
   @override
   Future<List<AdminUserModel>> fetchUsers() async {

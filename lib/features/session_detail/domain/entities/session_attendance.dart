@@ -1,55 +1,23 @@
 // lib/features/session_detail/domain/entities/session_attendance.dart
-// Enregistrement de présence du PROFESSEUR pour une séance donnée
+import 'package:freezed_annotation/freezed_annotation.dart';
 
-enum AttendanceStatus { onTime, absent, notScanned }
+part 'session_attendance.freezed.dart';
 
-class SessionAttendance {
-  /// ID de l'enregistrement Attendance en DB
-  final String id;
+@JsonEnum(fieldRename: FieldRename.screamingSnake)
+enum AttendanceStatus { onTime, absent }
 
-  /// Statut de présence du professeur
-  final AttendanceStatus status;
+@freezed
+abstract class SessionAttendance with _$SessionAttendance {
+  const factory SessionAttendance({
+    required String id,
+    required AttendanceStatus status,
+    DateTime? scanTime,
+    Supervisor? supervisor,
+  }) = _SessionAttendance;
+}
 
-  /// Heure à laquelle le QR a été scanné (null si absent/non scanné)
-  final DateTime? scanTime;
-
-  /// Nom du surveillant (supervisor) qui a scanné
-  final String? supervisorName;
-
-  /// Email du surveillant
-  final String? supervisorEmail;
-
-  const SessionAttendance({
-    required this.id,
-    required this.status,
-    this.scanTime,
-    this.supervisorName,
-    this.supervisorEmail,
-  });
-
-  factory SessionAttendance.fromJson(Map<String, dynamic> json) {
-    AttendanceStatus status;
-    switch (json['status'] as String?) {
-      case 'ON_TIME':
-        status = AttendanceStatus.onTime;
-        break;
-      case 'ABSENT':
-        status = AttendanceStatus.absent;
-        break;
-      default:
-        status = AttendanceStatus.notScanned;
-    }
-
-    return SessionAttendance(
-      id: json['id'] as String? ?? '',
-      status: status,
-      scanTime: json['scanTime'] != null
-          ? DateTime.tryParse(json['scanTime'] as String)
-          : null,
-      supervisorName: json['supervisor'] != null
-          ? '${json['supervisor']['firstName']} ${json['supervisor']['lastName']}'
-          : 'Superviseur inconnu',
-      supervisorEmail: json['supervisor']?['email'] as String?,
-    );
-  }
+@freezed
+abstract class Supervisor with _$Supervisor {
+  const factory Supervisor({required String name, required String email}) =
+      _Supervisor;
 }

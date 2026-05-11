@@ -1,20 +1,16 @@
-// lib/features/session_detail/presentation/blocs/session_detail_event.dart
-import 'package:equatable/equatable.dart';
-import 'package:ispm_attendance/features/schedule/domain/entities/course.dart';
+part of 'session_detail_bloc.dart';
 
-abstract class SessionDetailEvent extends Equatable {
-  const SessionDetailEvent();
-  @override
-  List<Object?> get props => [];
-}
+@freezed
+class SessionDetailEvent with _$SessionDetailEvent {
+  // L'événement déclenché au chargement de la page
+  const factory SessionDetailEvent.loadSessionDetail({
+    required String sessionId,
+    required String courseTitle, // ← passés depuis la page
+    required String fieldOfStudy,
+    required DateTime startTime,
+    required DateTime endTime,
+  }) = LoadSessionDetailEvent;
 
-class LoadSessionDetailEvent extends SessionDetailEvent {
-  final Course course;
-  const LoadSessionDetailEvent(this.course);
-  @override
-  List<Object?> get props => [course];
-}
-
-class ExportPdfEvent extends SessionDetailEvent {
-  const ExportPdfEvent();
+  // L'événement déclenché lors du clic sur le bouton PDF
+  const factory SessionDetailEvent.exportPdf() = ExportPdfEvent;
 }

@@ -17,7 +17,7 @@ abstract class AttendanceRemoteDataSource {
 @LazySingleton(as: AttendanceRemoteDataSource)
 class AttendanceRemoteDataSourceImpl implements AttendanceRemoteDataSource {
   final Dio _dio;
-  AttendanceRemoteDataSourceImpl(DioClient client) : _dio = client.dio;
+  AttendanceRemoteDataSourceImpl(this._dio);
 
   @override
   Future<AttendanceResultModel> validateAttendance({

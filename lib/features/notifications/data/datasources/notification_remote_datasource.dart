@@ -16,7 +16,7 @@ abstract class NotificationRemoteDataSource {
 @LazySingleton(as: NotificationRemoteDataSource)
 class NotificationRemoteDataSourceImpl implements NotificationRemoteDataSource {
   final Dio _dio;
-  NotificationRemoteDataSourceImpl(DioClient client) : _dio = client.dio;
+  NotificationRemoteDataSourceImpl(this._dio);
 
   @override
   Future<List<NotificationModel>> getNotifications() async {

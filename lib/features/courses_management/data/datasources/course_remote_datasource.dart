@@ -1,4 +1,4 @@
-// lib/features/admin/courses/data/datasources/course_remote_datasource.dart
+// lib/features/courses_management/data/datasources/course_remote_datasource.dart
 import 'package:dio/dio.dart';
 import 'package:injectable/injectable.dart';
 import '../../../../../core/network/dio_client.dart';
@@ -20,7 +20,7 @@ abstract class CourseRemoteDataSource {
 @LazySingleton(as: CourseRemoteDataSource)
 class CourseRemoteDataSourceImpl implements CourseRemoteDataSource {
   final Dio _dio;
-  CourseRemoteDataSourceImpl(DioClient client) : _dio = client.dio;
+  CourseRemoteDataSourceImpl(this._dio);
 
   @override
   Future<List<AdminCourseModel>> fetchCourses() async {

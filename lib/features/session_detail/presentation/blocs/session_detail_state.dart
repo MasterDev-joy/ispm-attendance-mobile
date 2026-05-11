@@ -1,54 +1,16 @@
-// lib/features/session_detail/presentation/blocs/session_detail_state.dart
-import 'package:equatable/equatable.dart';
-import 'package:ispm_attendance/features/schedule/domain/entities/course.dart';
-import '../../domain/entities/session_attendance.dart';
+part of 'session_detail_bloc.dart';
 
-abstract class SessionDetailState extends Equatable {
-  const SessionDetailState();
-  @override
-  List<Object?> get props => [];
-}
-
-class SessionDetailInitial extends SessionDetailState {}
-
-class SessionDetailLoading extends SessionDetailState {}
-
-class SessionDetailLoaded extends SessionDetailState {
-  final Course course;
-  final SessionAttendance? attendance; // null = pas encore scanné
-  final bool isExporting;
-
-  const SessionDetailLoaded({
-    required this.course,
-    required this.attendance,
-    this.isExporting = false,
-  });
-
-  SessionDetailLoaded copyWith({
-    SessionAttendance? attendance,
-    bool? isExporting,
-  }) {
-    return SessionDetailLoaded(
-      course: course,
-      attendance: attendance ?? this.attendance,
-      isExporting: isExporting ?? this.isExporting,
-    );
-  }
-
-  @override
-  List<Object?> get props => [course, attendance, isExporting];
-}
-
-class SessionDetailError extends SessionDetailState {
-  final String message;
-  const SessionDetailError(this.message);
-  @override
-  List<Object?> get props => [message];
-}
-
-class SessionDetailPdfReady extends SessionDetailState {
-  final String filePath;
-  const SessionDetailPdfReady(this.filePath);
-  @override
-  List<Object?> get props => [filePath];
+@freezed
+abstract class SessionDetailState with _$SessionDetailState {
+  const factory SessionDetailState.initial() = _Initial;
+  const factory SessionDetailState.loading() = _Loading;
+  const factory SessionDetailState.loaded({
+    required String courseTitle,
+    required String fieldOfStudy,
+    required DateTime startTime,
+    required DateTime endTime,
+    required SessionAttendance attendance,
+    @Default(false) bool isExporting,
+  }) = _Loaded;
+  const factory SessionDetailState.error(String message) = _Error;
 }
