@@ -9,6 +9,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:ispm_attendance/features/auth/presentation/extensions/user_role_ext.dart.dart';
 
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/presentation/widgets/ispm_glow_blob.dart';
@@ -252,7 +253,7 @@ class _StatsAppBar extends StatelessWidget {
               border: Border.all(color: accent.withOpacity(0.35)),
             ),
             child: Text(
-              role.roleLabel.toUpperCase(),
+              role.roleLabel,
               style: TextStyle(
                 fontFamily: 'Poppins',
                 fontSize: 9,

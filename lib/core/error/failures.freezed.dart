@@ -204,8 +204,8 @@ return unknown(_that.message);case _:
 /// @nodoc
 
 
-class ServerFailure implements Failure {
-  const ServerFailure(this.message);
+class ServerFailure extends Failure {
+  const ServerFailure(this.message): super._();
   
 
  final  String message;
@@ -270,8 +270,8 @@ as String,
 /// @nodoc
 
 
-class NetworkFailure implements Failure {
-  const NetworkFailure();
+class NetworkFailure extends Failure {
+  const NetworkFailure(): super._();
   
 
 
@@ -302,8 +302,8 @@ String toString() {
 /// @nodoc
 
 
-class UnauthorizedFailure implements Failure {
-  const UnauthorizedFailure();
+class UnauthorizedFailure extends Failure {
+  const UnauthorizedFailure(): super._();
   
 
 
@@ -334,8 +334,8 @@ String toString() {
 /// @nodoc
 
 
-class ForbiddenFailure implements Failure {
-  const ForbiddenFailure();
+class ForbiddenFailure extends Failure {
+  const ForbiddenFailure(): super._();
   
 
 
@@ -366,8 +366,8 @@ String toString() {
 /// @nodoc
 
 
-class CacheFailure implements Failure {
-  const CacheFailure(this.message);
+class CacheFailure extends Failure {
+  const CacheFailure(this.message): super._();
   
 
  final  String message;
@@ -432,8 +432,8 @@ as String,
 /// @nodoc
 
 
-class UnknownFailure implements Failure {
-  const UnknownFailure(this.message);
+class UnknownFailure extends Failure {
+  const UnknownFailure(this.message): super._();
   
 
  final  String message;

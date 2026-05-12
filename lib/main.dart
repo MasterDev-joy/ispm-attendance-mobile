@@ -63,7 +63,7 @@ void main() async {
     DeviceOrientation.portraitDown,
   ]);
 
-  await di.init();
+  di.configureDependencies();
   runApp(const ISPMApp());
 }
 
