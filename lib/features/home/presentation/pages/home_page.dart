@@ -27,13 +27,9 @@ import '../../../../core/presentation/widgets/ispm_mesh_grid.dart';
 
 // Auth
 import '../../../auth/presentation/blocs/auth_bloc.dart';
-import '../../../auth/presentation/blocs/auth_event.dart';
-import '../../../auth/presentation/blocs/auth_state.dart';
 
 // Schedule
 import '../../../schedule/presentation/blocs/schedule_bloc.dart';
-import '../../../schedule/presentation/blocs/schedule_event.dart';
-
 // Shared widgets
 import '../widgets/shared/home_app_bar.dart';
 import '../widgets/shared/home_bottom_nav.dart';

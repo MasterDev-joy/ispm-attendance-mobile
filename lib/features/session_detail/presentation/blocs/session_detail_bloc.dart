@@ -4,6 +4,7 @@ import 'package:injectable/injectable.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 import '../../domain/usecases/get_session_details_usecase.dart';
 import '../../domain/usecases/export_session_pdf_usecase.dart';
+import '../../domain/usecases/export_session_pdf_params.dart';
 import '../../domain/entities/session_attendance.dart';
 part 'session_detail_bloc.freezed.dart';
 part 'session_detail_event.dart';

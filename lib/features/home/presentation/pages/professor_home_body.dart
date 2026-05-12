@@ -12,8 +12,6 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../attendance/data/repositories/attendance_repository_impl.dart';
 import '../../../schedule/presentation/blocs/schedule_bloc.dart';
-import '../../../schedule/presentation/blocs/schedule_event.dart';
-import '../../../schedule/presentation/blocs/schedule_state.dart';
 import '../../../schedule/domain/entities/course.dart';
 
 // Shared widgets
@@ -39,7 +37,7 @@ class ProfessorHomeBody extends StatefulWidget {
   State<ProfessorHomeBody> createState() => _ProfessorHomeBodyState();
 }
 
-class _ProfessorHomeBodyState extends State<ProfessorHomeBody>{
+class _ProfessorHomeBodyState extends State<ProfessorHomeBody> {
   Set<String> _validatedIds = {}; // IDs des cours validés
   final _attendanceRepo = AttendanceRepositoryImpl(
     secureStorage: const FlutterSecureStorage(),
@@ -56,6 +54,7 @@ class _ProfessorHomeBodyState extends State<ProfessorHomeBody>{
     super.initState();
     _loadValidatedIds();
   }
+
   // ── Helpers temps ──────────────────────────────────────────────────────────
   String _formatTime(DateTime dt) =>
       '${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
@@ -112,13 +111,13 @@ class _ProfessorHomeBodyState extends State<ProfessorHomeBody>{
         curve: Interval(start, 1.0, curve: Curves.easeOut),
       ),
       child: SlideTransition(
-        position: Tween<Offset>(
-          begin: const Offset(0, 0.12),
-          end: Offset.zero,
-        ).animate(CurvedAnimation(
-          parent: widget.animController,
-          curve: Interval(start, 1.0, curve: Curves.easeOutCubic),
-        )),
+        position: Tween<Offset>(begin: const Offset(0, 0.12), end: Offset.zero)
+            .animate(
+              CurvedAnimation(
+                parent: widget.animController,
+                curve: Interval(start, 1.0, curve: Curves.easeOutCubic),
+              ),
+            ),
         child: child,
       ),
     );
@@ -131,19 +130,17 @@ class _ProfessorHomeBodyState extends State<ProfessorHomeBody>{
     return BlocBuilder<ScheduleBloc, ScheduleState>(
       builder: (context, state) {
         // ── Données dérivées ───────────────────────────────────────
-        final isLoading =
-            state is ScheduleLoading || state is ScheduleInitial;
+        final isLoading = state is ScheduleLoading || state is ScheduleInitial;
         final isError = state is ScheduleError;
-        final courses =
-        state is ScheduleLoaded ? state.courses : <Course>[];
+        final courses = state is ScheduleLoaded ? state.courses : <Course>[];
 
         final current = _currentCourse(courses);
         final next = _nextCourse(courses);
         final passed = courses.where(_isPast).length;
-        final remaining = courses.length -
-            passed -
-            (current != null ? 1 : 0);
-        final validated = courses.where((c) => _validatedIds.contains(c.id)).length;
+        final remaining = courses.length - passed - (current != null ? 1 : 0);
+        final validated = courses
+            .where((c) => _validatedIds.contains(c.id))
+            .length;
 
         // ── Stats grid ─────────────────────────────────────────────
         final stats = [
@@ -182,7 +179,6 @@ class _ProfessorHomeBodyState extends State<ProfessorHomeBody>{
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 110),
               sliver: SliverList(
                 delegate: SliverChildListDelegate([
-
                   // ── Grille stats ─────────────────────────────────
                   _stagger(0, HomeStatGrid(cards: stats)),
 
@@ -259,7 +255,10 @@ class _ProfessorHomeBodyState extends State<ProfessorHomeBody>{
                     const SizedBox(height: 10),
                     _stagger(
                       6,
-                      _ValidatedCoursesCard(count: validated, total: courses.length),
+                      _ValidatedCoursesCard(
+                        count: validated,
+                        total: courses.length,
+                      ),
                     ),
                     const SizedBox(height: 28),
                   ],
@@ -277,7 +276,7 @@ class _ProfessorHomeBodyState extends State<ProfessorHomeBody>{
                     ),
                     const SizedBox(height: 10),
                     ...courses.asMap().entries.map(
-                          (e) => _stagger(
+                      (e) => _stagger(
                         8 + e.key,
                         HomeMiniCourseRow(
                           title: e.value.title,

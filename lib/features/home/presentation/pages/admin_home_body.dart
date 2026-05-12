@@ -22,8 +22,7 @@ import 'package:http/http.dart' as http;
 import '../../../../core/config/app_config.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../schedule/presentation/blocs/schedule_bloc.dart';
-import '../../../schedule/presentation/blocs/schedule_event.dart';
-import '../../../schedule/presentation/blocs/schedule_state.dart';
+
 import '../../../schedule/domain/entities/course.dart';
 
 // Shared widgets
@@ -36,7 +35,7 @@ import '../widgets/admin/admin_live_course_row.dart';
 import '../widgets/admin/admin_action_card.dart';
 
 const _kAmber = Color(0xFFBA7517);
-const _kBlue  = Color(0xFF378ADD);
+const _kBlue = Color(0xFF378ADD);
 
 class AdminHomeBody extends StatefulWidget {
   final DateTime now;
@@ -73,7 +72,7 @@ class _AdminHomeBodyState extends State<AdminHomeBody> {
       if (res.statusCode == 200 && mounted) {
         final data = jsonDecode(res.body);
         setState(() {
-          _activeProfessors  = (data['totalProfessors']  ?? 0) as int;
+          _activeProfessors = (data['totalProfessors'] ?? 0) as int;
           _activeSupervisors = (data['totalSupervisors'] ?? 0) as int;
         });
       }
@@ -91,7 +90,7 @@ class _AdminHomeBodyState extends State<AdminHomeBody> {
 
   CoverageStatus _coverageFor(Course c) {
     if (_isUpcoming(c)) return CoverageStatus.upcoming;
-    if (_isCurrent(c))  return CoverageStatus.active;
+    if (_isCurrent(c)) return CoverageStatus.active;
     // TODO: vérifier via AttendanceRepository si le cours a été scanné
     // Mock : simulé validé si passé depuis > 30 min
     final elapsed = widget.now.difference(c.endTime).inMinutes;
@@ -108,13 +107,13 @@ class _AdminHomeBodyState extends State<AdminHomeBody> {
         curve: Interval(start, 1.0, curve: Curves.easeOut),
       ),
       child: SlideTransition(
-        position: Tween<Offset>(
-          begin: const Offset(0, 0.12),
-          end: Offset.zero,
-        ).animate(CurvedAnimation(
-          parent: widget.animController,
-          curve: Interval(start, 1.0, curve: Curves.easeOutCubic),
-        )),
+        position: Tween<Offset>(begin: const Offset(0, 0.12), end: Offset.zero)
+            .animate(
+              CurvedAnimation(
+                parent: widget.animController,
+                curve: Interval(start, 1.0, curve: Curves.easeOutCubic),
+              ),
+            ),
         child: child,
       ),
     );
@@ -126,23 +125,19 @@ class _AdminHomeBodyState extends State<AdminHomeBody> {
   Widget build(BuildContext context) {
     return BlocBuilder<ScheduleBloc, ScheduleState>(
       builder: (context, state) {
-        final isLoading =
-            state is ScheduleLoading || state is ScheduleInitial;
-        final isError  = state is ScheduleError;
-        final courses  =
-        state is ScheduleLoaded ? state.courses : <Course>[];
+        final isLoading = state is ScheduleLoading || state is ScheduleInitial;
+        final isError = state is ScheduleError;
+        final courses = state is ScheduleLoaded ? state.courses : <Course>[];
 
         // ── Métriques globales ─────────────────────────────────────
-        final totalCourses    = courses.length;
-        final coveredCourses  = courses
+        final totalCourses = courses.length;
+        final coveredCourses = courses
             .where((c) => _coverageFor(c) == CoverageStatus.covered)
             .length;
         final uncoveredCourses = courses
             .where((c) => _coverageFor(c) == CoverageStatus.uncovered)
             .length;
-        final activeCourses   = courses
-            .where(_isCurrent)
-            .length;
+        final activeCourses = courses.where(_isCurrent).length;
 
         // ── Stats grid ─────────────────────────────────────────────
         final stats = [
@@ -153,9 +148,7 @@ class _AdminHomeBodyState extends State<AdminHomeBody> {
             accentColor: _kAmber,
           ),
           StatCardData(
-            value: totalCourses > 0
-                ? '$coveredCourses/$totalCourses'
-                : '—',
+            value: totalCourses > 0 ? '$coveredCourses/$totalCourses' : '—',
             label: 'Cours validés',
             icon: Icons.check_circle_outline_rounded,
             accentColor: ISPMColors.green,
@@ -177,15 +170,17 @@ class _AdminHomeBodyState extends State<AdminHomeBody> {
         ];
 
         // ── Trier les cours : actifs → passés → à venir ────────────
-        final sortedCourses = [...courses]..sort((a, b) {
-          int priority(Course c) {
-            if (_isCurrent(c))  return 0;
-            if (_isPast(c))     return 1;
-            return 2;
-          }
-          final p = priority(a).compareTo(priority(b));
-          return p != 0 ? p : a.startTime.compareTo(b.startTime);
-        });
+        final sortedCourses = [...courses]
+          ..sort((a, b) {
+            int priority(Course c) {
+              if (_isCurrent(c)) return 0;
+              if (_isPast(c)) return 1;
+              return 2;
+            }
+
+            final p = priority(a).compareTo(priority(b));
+            return p != 0 ? p : a.startTime.compareTo(b.startTime);
+          });
 
         return CustomScrollView(
           physics: const BouncingScrollPhysics(),
@@ -194,7 +189,6 @@ class _AdminHomeBodyState extends State<AdminHomeBody> {
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 110),
               sliver: SliverList(
                 delegate: SliverChildListDelegate([
-
                   // ── Alertes critiques ──────────────────────────────
                   if (uncoveredCourses > 0) ...[
                     _stagger(
@@ -233,7 +227,10 @@ class _AdminHomeBodyState extends State<AdminHomeBody> {
                   const SizedBox(height: 10),
 
                   if (isLoading)
-                    _stagger(3, const HomeLoadingCard(height: 120, accentColor: _kAmber))
+                    _stagger(
+                      3,
+                      const HomeLoadingCard(height: 120, accentColor: _kAmber),
+                    )
                   else if (courses.isEmpty)
                     _stagger(
                       3,
@@ -244,16 +241,17 @@ class _AdminHomeBodyState extends State<AdminHomeBody> {
                     )
                   else
                     ...sortedCourses.asMap().entries.map(
-                          (e) => _stagger(
+                      (e) => _stagger(
                         3 + e.key,
                         AdminLiveCourseRow(
-                          courseTitle:   e.value.title,
+                          courseTitle: e.value.title,
                           // TODO: remplacer par vrai nom prof via AdminBloc
-                          professorName: 'Prof. ${e.value.fieldOfStudy.split(' ').first}',
-                          fieldOfStudy:  e.value.fieldOfStudy,
-                          startTime:     _fmt(e.value.startTime),
-                          endTime:       _fmt(e.value.endTime),
-                          status:        _coverageFor(e.value),
+                          professorName:
+                              'Prof. ${e.value.fieldOfStudy.split(' ').first}',
+                          fieldOfStudy: e.value.fieldOfStudy,
+                          startTime: _fmt(e.value.startTime),
+                          endTime: _fmt(e.value.endTime),
+                          status: _coverageFor(e.value),
                           onTap: () => Navigator.pushNamed(
                             context,
                             '/courses',
@@ -287,9 +285,9 @@ class _AdminHomeBodyState extends State<AdminHomeBody> {
                         severity: AlertSeverity.error,
                         message: (state).message,
                         actionLabel: 'Réessayer',
-                        onAction: () => context
-                            .read<ScheduleBloc>()
-                            .add(LoadScheduleEvent()),
+                        onAction: () => context.read<ScheduleBloc>().add(
+                          LoadScheduleEvent(),
+                        ),
                       ),
                     ),
                 ]),
@@ -335,10 +333,7 @@ class _AdminHomeBodyState extends State<AdminHomeBody> {
     ];
 
     return items.asMap().entries.map((e) {
-      return _stagger(
-        5 + e.key,
-        AdminActionCard(item: e.value),
-      );
+      return _stagger(5 + e.key, AdminActionCard(item: e.value));
     }).toList();
   }
 }

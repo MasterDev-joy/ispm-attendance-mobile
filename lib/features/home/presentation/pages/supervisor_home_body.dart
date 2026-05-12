@@ -17,8 +17,6 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../../../attendance/data/repositories/attendance_repository_impl.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../schedule/presentation/blocs/schedule_bloc.dart';
-import '../../../schedule/presentation/blocs/schedule_event.dart';
-import '../../../schedule/presentation/blocs/schedule_state.dart';
 import '../../../schedule/domain/entities/course.dart';
 import '../../../attendance/presentation/pages/attendance_scanner_page.dart';
 
@@ -33,7 +31,7 @@ import '../widgets/supervisor/supervisor_history_row.dart';
 
 const _kBlue = Color(0xFF378ADD);
 
-class SupervisorHomeBody extends StatefulWidget  {
+class SupervisorHomeBody extends StatefulWidget {
   final DateTime now;
   final AnimationController animController;
 
@@ -48,11 +46,11 @@ class SupervisorHomeBody extends StatefulWidget  {
     this.lastScannedProfessorName,
   });
 
-  @override  // ← ajouter ceci
+  @override // ← ajouter ceci
   State<SupervisorHomeBody> createState() => _SupervisorHomeBodyState();
 }
 
-class _SupervisorHomeBodyState extends State<SupervisorHomeBody>{
+class _SupervisorHomeBodyState extends State<SupervisorHomeBody> {
   Set<String> _validatedIds = {};
   final _attendanceRepo = AttendanceRepositoryImpl(
     secureStorage: const FlutterSecureStorage(),
@@ -130,13 +128,13 @@ class _SupervisorHomeBodyState extends State<SupervisorHomeBody>{
         curve: Interval(start, 1.0, curve: Curves.easeOut),
       ),
       child: SlideTransition(
-        position: Tween<Offset>(
-          begin: const Offset(0, 0.12),
-          end: Offset.zero,
-        ).animate(CurvedAnimation(
-          parent: widget.animController,
-          curve: Interval(start, 1.0, curve: Curves.easeOutCubic),
-        )),
+        position: Tween<Offset>(begin: const Offset(0, 0.12), end: Offset.zero)
+            .animate(
+              CurvedAnimation(
+                parent: widget.animController,
+                curve: Interval(start, 1.0, curve: Curves.easeOutCubic),
+              ),
+            ),
         child: child,
       ),
     );
@@ -148,11 +146,9 @@ class _SupervisorHomeBodyState extends State<SupervisorHomeBody>{
   Widget build(BuildContext context) {
     return BlocBuilder<ScheduleBloc, ScheduleState>(
       builder: (context, state) {
-        final isLoading =
-            state is ScheduleLoading || state is ScheduleInitial;
+        final isLoading = state is ScheduleLoading || state is ScheduleInitial;
         final isError = state is ScheduleError;
-        final courses =
-        state is ScheduleLoaded ? state.courses : <Course>[];
+        final courses = state is ScheduleLoaded ? state.courses : <Course>[];
 
         final active = _activeCourse(courses);
         final next = _nextCourse(courses);
@@ -201,7 +197,6 @@ class _SupervisorHomeBodyState extends State<SupervisorHomeBody>{
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 110),
               sliver: SliverList(
                 delegate: SliverChildListDelegate([
-
                   // ── Alerte cours non couverts ─────────────────────
                   if (uncoveredCount > 0) ...[
                     _stagger(
@@ -231,21 +226,27 @@ class _SupervisorHomeBodyState extends State<SupervisorHomeBody>{
                     HomeSectionHeader(
                       label: 'Cours à scanner',
                       icon: Icons.qr_code_scanner_rounded,
-                      iconColor:
-                      active != null ? _kBlue : ISPMColors.white.withOpacity(0.35),
+                      iconColor: active != null
+                          ? _kBlue
+                          : ISPMColors.white.withOpacity(0.35),
                     ),
                   ),
                   const SizedBox(height: 10),
 
                   if (isLoading)
-                    _stagger(3, HomeLoadingCard(height: 120, accentColor: _kBlue))
+                    _stagger(
+                      3,
+                      HomeLoadingCard(height: 120, accentColor: _kBlue),
+                    )
                   else if (active != null)
                     _stagger(
                       3,
                       SupervisorScanCard(
                         course: active,
                         // TODO: remplacer par le vrai nom du prof (via API)
-                        professorName: active.professorName.isNotEmpty ? active.professorName : 'Professeur',
+                        professorName: active.professorName.isNotEmpty
+                            ? active.professorName
+                            : 'Professeur',
                         progress: _progress(active),
                         formatTime: _fmt,
                         isValidated: false,
@@ -273,7 +274,14 @@ class _SupervisorHomeBodyState extends State<SupervisorHomeBody>{
                       ),
                     ),
                     const SizedBox(height: 10),
-                    _stagger(4, _NextScanCard(course: next, countdown: _countdown(next), fmt: _fmt)),
+                    _stagger(
+                      4,
+                      _NextScanCard(
+                        course: next,
+                        countdown: _countdown(next),
+                        fmt: _fmt,
+                      ),
+                    ),
                     const SizedBox(height: 28),
                   ],
 
@@ -290,23 +298,25 @@ class _SupervisorHomeBodyState extends State<SupervisorHomeBody>{
                     ),
                     const SizedBox(height: 10),
                     ...courses.asMap().entries.map(
-                          (e) => _stagger(
+                      (e) => _stagger(
                         7 + e.key,
                         SupervisorHistoryRow(
                           courseTitle: e.value.title,
                           // TODO: remplacer par le vrai nom du prof depuis API
-                          professorName: e.value.professorName.isNotEmpty ? e.value.professorName : 'Professeur',
+                          professorName: e.value.professorName.isNotEmpty
+                              ? e.value.professorName
+                              : 'Professeur',
                           startTime: _fmt(e.value.startTime),
                           endTime: _fmt(e.value.endTime),
                           status: _scanStatusFor(e.value),
                           onTap: _isCurrent(e.value)
                               ? () => Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) =>
-                              const AttendanceScannerPage(),
-                            ),
-                          )
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) =>
+                                        const AttendanceScannerPage(),
+                                  ),
+                                )
                               : null,
                         ),
                       ),
@@ -319,9 +329,8 @@ class _SupervisorHomeBodyState extends State<SupervisorHomeBody>{
                       severity: AlertSeverity.error,
                       message: (state as ScheduleError).message,
                       actionLabel: 'Réessayer',
-                      onAction: () => context
-                          .read<ScheduleBloc>()
-                          .add(LoadScheduleEvent()),
+                      onAction: () =>
+                          context.read<ScheduleBloc>().add(LoadScheduleEvent()),
                     ),
                 ]),
               ),
