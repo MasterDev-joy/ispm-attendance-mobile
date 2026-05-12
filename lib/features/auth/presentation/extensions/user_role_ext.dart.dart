@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 // Import du domaine de la MÊME feature
+import '../../../home/presentation/widgets/shared/home_bottom_nav.dart';
 import '../../domain/entities/user.dart';
 
 // Import du thème depuis le core (autorisé, car feature -> core)
@@ -13,6 +14,14 @@ extension UserRoleX on UserRole {
     UserRole.supervisor => const Color(0xFF378ADD),
     UserRole.admin => const Color(0xFFBA7517),
     UserRole.unknown => Colors.grey,
+  };
+
+  /// Items de navigation par rôle
+  List<NavItem> get navItems => switch (this) {
+    UserRole.professor => HomeNavItems.professor,
+    UserRole.supervisor => HomeNavItems.supervisor,
+    UserRole.admin => HomeNavItems.admin,
+    UserRole.unknown => [],
   };
 
   /// Label affiché dans le badge rôle

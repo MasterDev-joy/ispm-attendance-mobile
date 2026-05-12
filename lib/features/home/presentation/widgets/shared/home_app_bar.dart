@@ -8,34 +8,7 @@
 import 'package:flutter/material.dart';
 import '../../../../../core/theme/app_theme.dart';
 import '../../../../auth/domain/entities/user.dart';
-
-// ── Modèle de configuration ──────────────────────────────────────────────────
-
-extension UserRoleX on UserRole {
-  /// Couleur d'accent par rôle
-  Color get accentColor => switch (this) {
-    UserRole.professor => ISPMColors.green,
-    UserRole.supervisor => Color(0xFF378ADD),
-    UserRole.admin => Color(0xFFBA7517),
-    UserRole.unknown => Colors.grey,
-  };
-
-  /// Label affiché dans le badge rôle
-  String get roleLabel => switch (this) {
-    UserRole.professor => 'Professeur',
-    UserRole.supervisor => 'Superviseur',
-    UserRole.admin => 'Admin',
-    UserRole.unknown => 'Inconnu',
-  };
-
-  /// Icône du badge rôle
-  IconData get roleIcon => switch (this) {
-    UserRole.professor => Icons.menu_book_rounded,
-    UserRole.supervisor => Icons.qr_code_scanner_rounded,
-    UserRole.admin => Icons.shield_rounded,
-    UserRole.unknown => Icons.help_outline,
-  };
-}
+import '../../../../auth/presentation/extensions/user_role_ext.dart.dart';
 
 // ── Widget ───────────────────────────────────────────────────────────────────
 

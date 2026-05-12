@@ -14,8 +14,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:ispm_attendance/core/di/injection_container.dart';
 import '../../../attendance/data/repositories/attendance_repository_impl.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../attendance/domain/repositories/attendance_repository.dart';
 import '../../../schedule/presentation/blocs/schedule_bloc.dart';
 import '../../../schedule/domain/entities/course.dart';
 import '../../../attendance/presentation/pages/attendance_scanner_page.dart';
@@ -51,22 +53,34 @@ class SupervisorHomeBody extends StatefulWidget {
 }
 
 class _SupervisorHomeBodyState extends State<SupervisorHomeBody> {
-  Set<String> _validatedIds = {};
-  final _attendanceRepo = AttendanceRepositoryImpl(
-    secureStorage: const FlutterSecureStorage(),
-  );
+  Set<String> _validatedIds = {}; // IDs des cours validés
+  // On demande l'instance à GetIt via "sl"
+  final _attendanceRepo = sl<AttendanceRepository>();
+
+  Future<void> _loadValidatedIds() async {
+    // Le repository retourne un Either<Failure, Set<String>>
+    final result = await _attendanceRepo.getTodayValidatedCourseIds();
+
+    if (mounted) {
+      // On utilise .fold() pour séparer l'erreur du succès
+      result.fold(
+        (failure) {
+          // Gestion de l'erreur (tu peux afficher un log ou un snackbar)
+          debugPrint("Erreur de récupération : ${failure.errorMessage}");
+        },
+        (ids) {
+          // Succès : on met à jour l'état
+          setState(() => _validatedIds = ids);
+        },
+      );
+    }
+  }
 
   @override
   void initState() {
     super.initState();
     _loadValidatedIds();
   }
-
-  Future<void> _loadValidatedIds() async {
-    final ids = await _attendanceRepo.getTodayValidatedCourseIds();
-    if (mounted) setState(() => _validatedIds = ids);
-  }
-
   // ── Helpers ────────────────────────────────────────────────────────────────
 
   String _fmt(DateTime dt) =>
@@ -146,9 +160,25 @@ class _SupervisorHomeBodyState extends State<SupervisorHomeBody> {
   Widget build(BuildContext context) {
     return BlocBuilder<ScheduleBloc, ScheduleState>(
       builder: (context, state) {
-        final isLoading = state is ScheduleLoading || state is ScheduleInitial;
-        final isError = state is ScheduleError;
-        final courses = state is ScheduleLoaded ? state.courses : <Course>[];
+        final (
+          bool isLoading,
+          bool isError,
+          List<Course> courses,
+          String errorMessage,
+        ) = state.maybeWhen(
+          // États de chargement
+          initial: () => (true, false, <Course>[], ''),
+          loading: () => (true, false, <Course>[], ''),
+
+          // État chargé avec succès
+          loaded: (coursesData) => (false, false, coursesData, ''),
+
+          // État d'erreur
+          error: (message) => (false, true, <Course>[], message),
+
+          // Sécurité (au cas où tu ajoutes un autre état plus tard)
+          orElse: () => (false, false, <Course>[], ''),
+        );
 
         final active = _activeCourse(courses);
         final next = _nextCourse(courses);
@@ -327,10 +357,11 @@ class _SupervisorHomeBodyState extends State<SupervisorHomeBody> {
                   if (isError)
                     HomeAlertCard(
                       severity: AlertSeverity.error,
-                      message: (state as ScheduleError).message,
+                      message: errorMessage,
                       actionLabel: 'Réessayer',
-                      onAction: () =>
-                          context.read<ScheduleBloc>().add(LoadScheduleEvent()),
+                      onAction: () => context.read<ScheduleBloc>().add(
+                        ScheduleEvent.load(),
+                      ),
                     ),
                 ]),
               ),

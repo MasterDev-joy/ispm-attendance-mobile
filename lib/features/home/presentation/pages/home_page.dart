@@ -19,6 +19,8 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import '../../../auth/domain/entities/user.dart';
+import '../../../auth/presentation/extensions/user_role_ext.dart.dart';
 
 // Core
 import '../../../../core/theme/app_theme.dart';
@@ -39,12 +41,6 @@ import '../widgets/shared/home_logout_dialog.dart';
 import 'professor_home_body.dart';
 import 'supervisor_home_body.dart';
 import 'admin_home_body.dart';
-
-// ── Constantes couleurs ───────────────────────────────────────────────────────
-
-const _kGreen = ISPMColors.green;
-const _kBlue = Color(0xFF378ADD);
-const _kAmber = Color(0xFFBA7517);
 
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -84,7 +80,7 @@ class _HomePageState extends State<HomePage>
     )..forward();
 
     // Charger le planning dès l'ouverture
-    context.read<ScheduleBloc>().add(LoadScheduleEvent());
+    context.read<ScheduleBloc>().add(ScheduleEvent.load());
 
     // Barre système — icônes claires sur fond sombre
     SystemChrome.setSystemUIOverlayStyle(
@@ -101,43 +97,6 @@ class _HomePageState extends State<HomePage>
     _animController.dispose();
     super.dispose();
   }
-
-  // ── Résolution du rôle ────────────────────────────────────────────────────
-
-  UserRole _resolveRole(String rawRole) {
-    switch (rawRole.toLowerCase().trim()) {
-      case 'supervisor':
-        return UserRole.supervisor;
-      case 'admin':
-        return UserRole.admin;
-      default:
-        return UserRole.professor;
-    }
-  }
-
-  // ── Couleur active nav selon rôle ─────────────────────────────────────────
-
-  Color _accentFor(UserRole role) => switch (role) {
-    UserRole.professor => _kGreen,
-    UserRole.supervisor => _kBlue,
-    UserRole.admin => _kAmber,
-  };
-
-  // ── Items navigation selon rôle ───────────────────────────────────────────
-
-  List<NavItem> _navItemsFor(UserRole role) => switch (role) {
-    UserRole.professor => HomeNavItems.professor,
-    UserRole.supervisor => HomeNavItems.supervisor,
-    UserRole.admin => HomeNavItems.admin,
-  };
-
-  // ── Couleur blob background selon rôle ───────────────────────────────────
-
-  Color _blobColorFor(UserRole role) => switch (role) {
-    UserRole.professor => ISPMColors.greenDark,
-    UserRole.supervisor => _kBlue,
-    UserRole.admin => _kAmber,
-  };
 
   // ── Tap navigation ────────────────────────────────────────────────────────
 
@@ -164,7 +123,7 @@ class _HomePageState extends State<HomePage>
     showLogoutDialog(
       context,
       onConfirm: () {
-        context.read<AuthBloc>().add(LogoutRequestedEvent());
+        context.read<AuthBloc>().add(AuthEvent.logoutRequested());
         Navigator.of(
           context,
         ).pushNamedAndRemoveUntil('/login', (route) => false);
@@ -179,24 +138,24 @@ class _HomePageState extends State<HomePage>
     return BlocBuilder<AuthBloc, AuthState>(
       builder: (context, authState) {
         // ── Extraction des données utilisateur ──────────────────────
-        final String userName;
-        final UserRole role;
-        final bool hasNotification;
+        String userName = 'Utilisateur'; // Valeur par défaut
+        UserRole role = UserRole.professor; // Valeur par défaut
+        bool hasNotification = false; // Valeur par défaut
 
-        if (authState is AuthAuthenticated) {
-          userName = authState.user.name;
-          role = _resolveRole(authState.user.role);
-          hasNotification = false; // TODO: brancher NotificationBloc
-        } else {
-          // Fallback pendant le chargement / état intermédiaire
-          userName = '';
-          role = UserRole.professor;
-          hasNotification = false;
-        }
+        // Utilisation de maybeWhen pour extraire proprement l'utilisateur
+        authState.maybeWhen(
+          authenticated: (user) {
+            userName = user.fullName;
+            role = user.role;
+            hasNotification = false; // TODO: brancher NotificationBloc
+          },
+          orElse: () {
+            // Fallback géré par les valeurs par défaut définies au-dessus!
+          },
+        );
 
-        final accent = _accentFor(role);
-        final navItems = _navItemsFor(role);
-        final blobColor = _blobColorFor(role);
+        final accent = role.accentColor;
+        final navItems = role.navItems;
 
         return Scaffold(
           backgroundColor: ISPMColors.black,
@@ -207,7 +166,7 @@ class _HomePageState extends State<HomePage>
             items: navItems,
             selectedIndex: _selectedIndex,
             onTap: (i) => _onNavTap(i, navItems),
-            activeColor: accent,
+            activeColor: role.accentColor,
           ),
 
           body: Stack(
@@ -220,8 +179,8 @@ class _HomePageState extends State<HomePage>
                 left: -80,
                 child: IspmGlowBlob.circle(
                   radius: 220,
-                  primaryColor: blobColor.withOpacity(0.10),
-                  secondaryColor: blobColor.withOpacity(0.05),
+                  primaryColor: accent.withOpacity(0.10),
+                  secondaryColor: accent.withOpacity(0.05),
                 ),
               ),
               Positioned(
@@ -229,7 +188,7 @@ class _HomePageState extends State<HomePage>
                 right: -90,
                 child: IspmGlowBlob.circle(
                   radius: 150,
-                  primaryColor: blobColor.withOpacity(0.07),
+                  primaryColor: accent.withOpacity(0.07),
                   secondaryColor: Colors.transparent,
                 ),
               ),
@@ -238,7 +197,7 @@ class _HomePageState extends State<HomePage>
                 left: -40,
                 child: IspmGlowBlob.circle(
                   radius: 170,
-                  primaryColor: blobColor.withOpacity(0.06),
+                  primaryColor: accent.withOpacity(0.06),
                   secondaryColor: Colors.transparent,
                 ),
               ),
@@ -302,6 +261,7 @@ class _HomePageState extends State<HomePage>
         now: _now,
         animController: _animController,
       ),
+      UserRole.unknown => const Center(child: Text('Rôle inconnu')),
     };
   }
 }

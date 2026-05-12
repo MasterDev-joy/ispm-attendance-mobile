@@ -125,9 +125,25 @@ class _AdminHomeBodyState extends State<AdminHomeBody> {
   Widget build(BuildContext context) {
     return BlocBuilder<ScheduleBloc, ScheduleState>(
       builder: (context, state) {
-        final isLoading = state is ScheduleLoading || state is ScheduleInitial;
-        final isError = state is ScheduleError;
-        final courses = state is ScheduleLoaded ? state.courses : <Course>[];
+        final (
+          bool isLoading,
+          bool isError,
+          List<Course> courses,
+          String errorMessage,
+        ) = state.maybeWhen(
+          // États de chargement
+          initial: () => (true, false, <Course>[], ''),
+          loading: () => (true, false, <Course>[], ''),
+
+          // État chargé avec succès
+          loaded: (coursesData) => (false, false, coursesData, ''),
+
+          // État d'erreur
+          error: (message) => (false, true, <Course>[], message),
+
+          // Sécurité (au cas où tu ajoutes un autre état plus tard)
+          orElse: () => (false, false, <Course>[], ''),
+        );
 
         // ── Métriques globales ─────────────────────────────────────
         final totalCourses = courses.length;
@@ -283,10 +299,10 @@ class _AdminHomeBodyState extends State<AdminHomeBody> {
                       padding: const EdgeInsets.only(top: 12),
                       child: HomeAlertCard(
                         severity: AlertSeverity.error,
-                        message: (state).message,
+                        message: errorMessage,
                         actionLabel: 'Réessayer',
                         onAction: () => context.read<ScheduleBloc>().add(
-                          LoadScheduleEvent(),
+                          ScheduleEvent.load(),
                         ),
                       ),
                     ),

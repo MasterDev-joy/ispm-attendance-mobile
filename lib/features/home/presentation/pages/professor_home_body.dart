@@ -8,9 +8,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:ispm_attendance/core/di/injection_container.dart';
 
 import '../../../../core/theme/app_theme.dart';
 import '../../../attendance/data/repositories/attendance_repository_impl.dart';
+import '../../../attendance/domain/repositories/attendance_repository.dart';
 import '../../../schedule/presentation/blocs/schedule_bloc.dart';
 import '../../../schedule/domain/entities/course.dart';
 
@@ -39,13 +41,26 @@ class ProfessorHomeBody extends StatefulWidget {
 
 class _ProfessorHomeBodyState extends State<ProfessorHomeBody> {
   Set<String> _validatedIds = {}; // IDs des cours validés
-  final _attendanceRepo = AttendanceRepositoryImpl(
-    secureStorage: const FlutterSecureStorage(),
-  );
+  // On demande l'instance à GetIt via "sl"
+  final _attendanceRepo = sl<AttendanceRepository>();
 
   Future<void> _loadValidatedIds() async {
-    final ids = await _attendanceRepo.getTodayValidatedCourseIds();
-    if (mounted) setState(() => _validatedIds = ids);
+    // Le repository retourne un Either<Failure, Set<String>>
+    final result = await _attendanceRepo.getTodayValidatedCourseIds();
+
+    if (mounted) {
+      // On utilise .fold() pour séparer l'erreur du succès
+      result.fold(
+        (failure) {
+          // Gestion de l'erreur (tu peux afficher un log ou un snackbar)
+          debugPrint("Erreur de récupération : ${failure.errorMessage}");
+        },
+        (ids) {
+          // Succès : on met à jour l'état
+          setState(() => _validatedIds = ids);
+        },
+      );
+    }
   }
 
   @override
@@ -130,9 +145,25 @@ class _ProfessorHomeBodyState extends State<ProfessorHomeBody> {
     return BlocBuilder<ScheduleBloc, ScheduleState>(
       builder: (context, state) {
         // ── Données dérivées ───────────────────────────────────────
-        final isLoading = state is ScheduleLoading || state is ScheduleInitial;
-        final isError = state is ScheduleError;
-        final courses = state is ScheduleLoaded ? state.courses : <Course>[];
+        final (
+          bool isLoading,
+          bool isError,
+          List<Course> courses,
+          String errorMessage,
+        ) = state.maybeWhen(
+          // États de chargement
+          initial: () => (true, false, <Course>[], ''),
+          loading: () => (true, false, <Course>[], ''),
+
+          // État chargé avec succès
+          loaded: (coursesData) => (false, false, coursesData, ''),
+
+          // État d'erreur
+          error: (message) => (false, true, <Course>[], message),
+
+          // Sécurité (au cas où tu ajoutes un autre état plus tard)
+          orElse: () => (false, false, <Course>[], ''),
+        );
 
         final current = _currentCourse(courses);
         final next = _nextCourse(courses);
@@ -299,10 +330,11 @@ class _ProfessorHomeBodyState extends State<ProfessorHomeBody> {
                   if (isError)
                     HomeAlertCard(
                       severity: AlertSeverity.error,
-                      message: (state).message,
+                      message: errorMessage,
                       actionLabel: 'Réessayer',
-                      onAction: () =>
-                          context.read<ScheduleBloc>().add(LoadScheduleEvent()),
+                      onAction: () => context.read<ScheduleBloc>().add(
+                        ScheduleEvent.load(),
+                      ),
                     ),
                 ]),
               ),
