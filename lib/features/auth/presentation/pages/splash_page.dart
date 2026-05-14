@@ -41,8 +41,11 @@ class _SplashPageState extends State<SplashPage>
         curve: const Interval(0.0, 0.7, curve: Curves.elasticOut),
       ),
     );
-
-    _controller.forward().then((_) => _tryNavigate());
+    _controller.forward().then(
+      (_) =>
+          // Après l'animation, vérifie le statut d'authentification
+          context.read<AuthBloc>().add(const AuthEvent.checkAuthStatus()),
+    );
   }
 
   @override
@@ -51,54 +54,22 @@ class _SplashPageState extends State<SplashPage>
     super.dispose();
   }
 
-  // ── Navigation selon l'état freezed ───────────────────────────────────────
-  void _tryNavigate() {
-    if (!mounted) return;
-    final state = context.read<AuthBloc>().state;
-
-    // On attend que l'état soit résolu (pas initial ni loading)
-    state.whenOrNull(
-      initial: () => null, // pas encore résolu → on attend le BlocListener
-      loading: () => null, // en cours → on attend le BlocListener
-      authenticated: (_) {
-        Navigator.of(context).pushReplacementNamed('/home');
-      },
-      requiresPasswordChange: (user) {
-        Navigator.of(
-          context,
-        ).pushReplacementNamed('/change-password', arguments: user);
-      },
-      unauthenticated: () {
-        Navigator.of(context).pushReplacementNamed('/login');
-      },
-      error: (_) {
-        Navigator.of(context).pushReplacementNamed('/login');
-      },
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
-    return BlocListener<AuthBloc, AuthState>(
-      // Le listener réagit quand l'état arrive APRÈS la fin de l'animation
-      listener: (context, state) {
-        if (_controller.isCompleted) _tryNavigate();
-      },
-      child: Scaffold(
-        backgroundColor: const Color(0xFF0D1210),
-        body: Stack(
-          fit: StackFit.expand,
-          children: [
-            const _SplashBackground(),
-            Center(
-              child: _SplashContent(
-                fadeAnimation: _fadeAnim,
-                scaleAnimation: _scaleAnim,
-              ),
+    return Scaffold(
+      backgroundColor: const Color(0xFF0D1210),
+      body: Stack(
+        fit: StackFit.expand,
+        children: [
+          const _SplashBackground(),
+          Center(
+            child: _SplashContent(
+              fadeAnimation: _fadeAnim,
+              scaleAnimation: _scaleAnim,
             ),
-            _SplashLoader(fadeAnimation: _fadeAnim),
-          ],
-        ),
+          ),
+          _SplashLoader(fadeAnimation: _fadeAnim),
+        ],
       ),
     );
   }

@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:flutter/material.dart';
 import 'package:fpdart/fpdart.dart';
 import 'package:injectable/injectable.dart';
 import '../../../../core/error/failures.dart';
@@ -34,6 +35,7 @@ class AuthRepositoryImpl implements AuthRepository {
       await _local.saveToken(result.token);
       return Right(result.user.toEntity());
     } on DioException catch (e) {
+      debugPrint("ERREUR CACHÉE : ${e.error}");
       return Left(_handleDioError(e));
     } catch (e) {
       return Left(Failure.unknown(e.toString()));

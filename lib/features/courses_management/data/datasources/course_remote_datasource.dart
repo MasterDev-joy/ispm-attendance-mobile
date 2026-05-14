@@ -20,7 +20,7 @@ abstract class CourseRemoteDataSource {
 @LazySingleton(as: CourseRemoteDataSource)
 class CourseRemoteDataSourceImpl implements CourseRemoteDataSource {
   final Dio _dio;
-  CourseRemoteDataSourceImpl(this._dio);
+  CourseRemoteDataSourceImpl(DioClient dioClient) : _dio = dioClient.dio;
 
   @override
   Future<List<AdminCourseModel>> fetchCourses() async {

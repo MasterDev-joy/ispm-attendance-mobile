@@ -22,7 +22,10 @@ class ProfileRepositoryImpl implements ProfileRepository {
       return Right(userModel.toEntity());
     } on DioException catch (e) {
       return Left(mapDioFailure(e));
-    } catch (e) {
+    } catch (e, stacktrace) {
+      // 👇 AJOUTEZ CES DEUX LIGNES POUR DÉBOGUER 👇
+      print("🚨 ERREUR RÉELLE PROFIL : $e");
+      print("📍 STACKTRACE : $stacktrace");
       return Left(Failure.unknown(e.toString()));
     }
   }

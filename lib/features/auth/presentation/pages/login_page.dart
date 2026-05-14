@@ -153,17 +153,6 @@ class _LoginPageState extends State<LoginPage>
                           ),
                         );
                       },
-                      // Connecté → home
-                      authenticated: (_) {
-                        Navigator.of(context).pushReplacementNamed('/home');
-                      },
-                      // Première connexion → changement de mdp
-                      requiresPasswordChange: (user) {
-                        Navigator.of(context).pushReplacementNamed(
-                          '/change-password',
-                          arguments: user,
-                        );
-                      },
                     );
                   },
                   builder: (context, state) {

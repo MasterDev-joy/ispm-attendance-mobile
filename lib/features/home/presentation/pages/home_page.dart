@@ -19,6 +19,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
 import '../../../auth/domain/entities/user.dart';
 import '../../../auth/presentation/extensions/user_role_ext.dart.dart';
 
@@ -110,11 +111,11 @@ class _HomePageState extends State<HomePage>
 
     // Scanner → toujours push (pas de pop si déjà ouvert)
     if (item.isScanner) {
-      Navigator.pushNamed(context, '/scanner');
+      context.push('/scanner');
       return;
     }
 
-    Navigator.pushNamed(context, item.route);
+    context.push(item.route);
   }
 
   // ── Logout ────────────────────────────────────────────────────────────────
@@ -124,9 +125,6 @@ class _HomePageState extends State<HomePage>
       context,
       onConfirm: () {
         context.read<AuthBloc>().add(AuthEvent.logoutRequested());
-        Navigator.of(
-          context,
-        ).pushNamedAndRemoveUntil('/login', (route) => false);
       },
     );
   }
@@ -217,8 +215,7 @@ class _HomePageState extends State<HomePage>
                         userName: userName,
                         role: role,
                         hasNotification: hasNotification,
-                        onNotificationTap: () =>
-                            Navigator.pushNamed(context, '/notifications'),
+                        onNotificationTap: () => context.push('/notifications'),
                         onLogoutTap: _handleLogout,
                       ),
                     ),

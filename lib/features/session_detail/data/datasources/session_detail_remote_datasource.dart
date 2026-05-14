@@ -1,6 +1,7 @@
 //lib/features/session_detail/data/datasources/session_detail_remote_datasource.dart
 import 'package:dio/dio.dart';
 import 'package:injectable/injectable.dart';
+import '../../../../core/network/dio_client.dart';
 import '../models/session_attendance_model.dart';
 
 abstract class SessionDetailRemoteDataSource {
@@ -11,7 +12,7 @@ abstract class SessionDetailRemoteDataSource {
 class SessionDetailRemoteDataSourceImpl
     implements SessionDetailRemoteDataSource {
   final Dio _dio;
-  SessionDetailRemoteDataSourceImpl(this._dio);
+  SessionDetailRemoteDataSourceImpl(DioClient dioClient) : _dio = dioClient.dio;
 
   @override
   Future<SessionAttendanceModel> getSessionDetails(String sessionId) async {

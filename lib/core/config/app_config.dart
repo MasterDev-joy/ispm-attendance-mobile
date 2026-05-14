@@ -4,7 +4,7 @@
 /// Modifiez uniquement ici pour changer l'URL du serveur.
 ///
 /// Pour injecter via --dart-define au build :
-///   flutter run --dart-define=BASE_URL=http://192.168.1.100:3000
+///   flutter run --dart-define=BASE_URL=http://192.168.43.207:3000
 class AppConfig {
   static const String baseUrl = String.fromEnvironment(
     'BASE_URL',

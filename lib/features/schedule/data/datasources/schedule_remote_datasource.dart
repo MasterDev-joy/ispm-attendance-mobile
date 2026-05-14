@@ -11,7 +11,7 @@ abstract class ScheduleRemoteDataSource {
 @LazySingleton(as: ScheduleRemoteDataSource)
 class ScheduleRemoteDataSourceImpl implements ScheduleRemoteDataSource {
   final Dio _dio;
-  ScheduleRemoteDataSourceImpl(this._dio);
+  ScheduleRemoteDataSourceImpl(DioClient dioClient) : _dio = dioClient.dio;
 
   @override
   Future<List<CourseModel>> fetchMyCourses() async {

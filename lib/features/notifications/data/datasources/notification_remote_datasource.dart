@@ -1,6 +1,7 @@
 // lib/features/notifications/data/datasources/notification_remote_datasource.dart
 
 import 'package:dio/dio.dart';
+import 'package:dio/io.dart';
 import 'package:injectable/injectable.dart';
 
 import '../../../../../core/network/dio_client.dart';
@@ -16,7 +17,7 @@ abstract class NotificationRemoteDataSource {
 @LazySingleton(as: NotificationRemoteDataSource)
 class NotificationRemoteDataSourceImpl implements NotificationRemoteDataSource {
   final Dio _dio;
-  NotificationRemoteDataSourceImpl(this._dio);
+  NotificationRemoteDataSourceImpl(DioClient dioClient) : _dio = dioClient.dio;
 
   @override
   Future<List<NotificationModel>> getNotifications() async {

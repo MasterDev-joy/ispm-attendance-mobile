@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:injectable/injectable.dart';
+import 'package:ispm_attendance/core/network/dio_client.dart';
 import '../../../../core/config/app_config.dart';
 import '../../../../core/error/failures.dart'; // ServerException
 
@@ -14,7 +15,8 @@ class SettingsRemoteDataSourceImpl implements SettingsRemoteDataSource {
   final Dio _dio;
   final FlutterSecureStorage _storage;
 
-  const SettingsRemoteDataSourceImpl(this._dio, this._storage);
+  SettingsRemoteDataSourceImpl(DioClient dioClient, this._storage)
+    : _dio = dioClient.dio;
 
   @override
   Future<Map<String, dynamic>> checkHealth() async {

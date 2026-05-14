@@ -148,6 +148,8 @@ import '../../features/users_management/domain/usecases/toggle_user_usecase.dart
 import '../../features/users_management/presentation/blocs/user_bloc.dart'
     as _i347;
 import '../network/dio_client.dart' as _i667;
+import '../router/app_router.dart' as _i81;
+import 'register_module.dart' as _i291;
 
 extension GetItInjectableX on _i174.GetIt {
   // initializes the registration of main-scope dependencies inside of GetIt
@@ -156,51 +158,45 @@ extension GetItInjectableX on _i174.GetIt {
     _i526.EnvironmentFilter? environmentFilter,
   }) {
     final gh = _i526.GetItHelper(this, environment, environmentFilter);
+    final registerModule = _$RegisterModule();
+    gh.lazySingleton<_i361.Dio>(() => registerModule.dio);
+    gh.lazySingleton<_i558.FlutterSecureStorage>(
+      () => registerModule.secureStorage,
+    );
     gh.lazySingleton<_i262.SessionPdfService>(
       () => _i124.SessionPdfServiceImpl(),
     );
     gh.lazySingleton<_i667.DioClient>(
       () => _i667.DioClient(gh<_i558.FlutterSecureStorage>()),
     );
-    gh.lazySingleton<_i327.ProfileRemoteDataSource>(
-      () => _i327.ProfileRemoteDataSourceImpl(gh<_i361.Dio>()),
+    gh.lazySingleton<_i425.AttendanceRemoteDataSource>(
+      () => _i425.AttendanceRemoteDataSourceImpl(gh<_i667.DioClient>()),
     );
-    gh.lazySingleton<_i1069.SessionDetailRemoteDataSource>(
-      () => _i1069.SessionDetailRemoteDataSourceImpl(gh<_i361.Dio>()),
+    gh.lazySingleton<_i995.ReportRemoteDataSource>(
+      () => _i995.ReportRemoteDataSourceImpl(gh<_i667.DioClient>()),
     );
-    gh.lazySingleton<_i894.ProfileRepository>(
-      () => _i334.ProfileRepositoryImpl(gh<_i327.ProfileRemoteDataSource>()),
-    );
-    gh.lazySingleton<_i965.GetProfileUseCase>(
-      () => _i965.GetProfileUseCase(gh<_i894.ProfileRepository>()),
-    );
-    gh.lazySingleton<_i478.UpdateProfileUseCase>(
-      () => _i478.UpdateProfileUseCase(gh<_i894.ProfileRepository>()),
-    );
-    gh.lazySingleton<_i275.CourseRemoteDataSource>(
-      () => _i275.CourseRemoteDataSourceImpl(gh<_i361.Dio>()),
-    );
-    gh.lazySingleton<_i140.SettingsRemoteDataSource>(
-      () => _i140.SettingsRemoteDataSourceImpl(
-        gh<_i361.Dio>(),
-        gh<_i558.FlutterSecureStorage>(),
-      ),
-    );
-    gh.lazySingleton<_i923.NotificationRemoteDataSource>(
-      () => _i923.NotificationRemoteDataSourceImpl(gh<_i361.Dio>()),
+    gh.lazySingleton<_i477.QrRepository>(
+      () => _i719.QrRepositoryImpl(gh<_i425.AttendanceRemoteDataSource>()),
     );
     gh.lazySingleton<_i992.AuthLocalDataSource>(
       () => _i992.AuthLocalDataSourceImpl(gh<_i558.FlutterSecureStorage>()),
     );
-    gh.lazySingleton<_i898.UserRemoteDataSource>(
-      () => _i898.UserRemoteDataSourceImpl(gh<_i361.Dio>()),
-    );
-    gh.factory<_i726.QrBloc>(() => _i726.QrBloc(gh<_i461.GetQrPayload>()));
-    gh.lazySingleton<_i995.ReportRemoteDataSource>(
-      () => _i995.ReportRemoteDataSourceImpl(gh<_i361.Dio>()),
-    );
     gh.lazySingleton<_i720.StatsRemoteDataSource>(
-      () => _i720.StatsRemoteDataSourceImpl(gh<_i361.Dio>()),
+      () => _i720.StatsRemoteDataSourceImpl(gh<_i667.DioClient>()),
+    );
+    gh.lazySingleton<_i477.AttendanceRepository>(
+      () => _i719.AttendanceRepositoryImpl(
+        gh<_i425.AttendanceRemoteDataSource>(),
+      ),
+    );
+    gh.lazySingleton<_i898.UserRemoteDataSource>(
+      () => _i898.UserRemoteDataSourceImpl(gh<_i667.DioClient>()),
+    );
+    gh.lazySingleton<_i275.CourseRemoteDataSource>(
+      () => _i275.CourseRemoteDataSourceImpl(gh<_i667.DioClient>()),
+    );
+    gh.lazySingleton<_i923.NotificationRemoteDataSource>(
+      () => _i923.NotificationRemoteDataSourceImpl(gh<_i667.DioClient>()),
     );
     gh.lazySingleton<_i1065.CourseRepository>(
       () => _i133.CourseRepositoryImpl(gh<_i275.CourseRemoteDataSource>()),
@@ -211,34 +207,22 @@ extension GetItInjectableX on _i174.GetIt {
     gh.lazySingleton<_i804.StatsRepository>(
       () => _i845.StatsRepositoryImpl(gh<_i720.StatsRemoteDataSource>()),
     );
-    gh.lazySingleton<_i115.ScheduleRemoteDataSource>(
-      () => _i115.ScheduleRemoteDataSourceImpl(gh<_i361.Dio>()),
-    );
     gh.lazySingleton<_i367.NotificationRepository>(
       () => _i361.NotificationRepositoryImpl(
         gh<_i923.NotificationRemoteDataSource>(),
       ),
     );
-    gh.lazySingleton<_i161.AuthRemoteDataSource>(
-      () => _i161.AuthRemoteDataSourceImpl(gh<_i361.Dio>()),
+    gh.lazySingleton<_i1069.SessionDetailRemoteDataSource>(
+      () => _i1069.SessionDetailRemoteDataSourceImpl(gh<_i667.DioClient>()),
     );
-    gh.factory<_i133.ProfileBloc>(
-      () => _i133.ProfileBloc(
-        gh<_i965.GetProfileUseCase>(),
-        gh<_i478.UpdateProfileUseCase>(),
+    gh.lazySingleton<_i327.ProfileRemoteDataSource>(
+      () => _i327.ProfileRemoteDataSourceImpl(gh<_i667.DioClient>()),
+    );
+    gh.lazySingleton<_i140.SettingsRemoteDataSource>(
+      () => _i140.SettingsRemoteDataSourceImpl(
+        gh<_i667.DioClient>(),
+        gh<_i558.FlutterSecureStorage>(),
       ),
-    );
-    gh.lazySingleton<_i787.AuthRepository>(
-      () => _i153.AuthRepositoryImpl(
-        gh<_i161.AuthRemoteDataSource>(),
-        gh<_i992.AuthLocalDataSource>(),
-      ),
-    );
-    gh.lazySingleton<_i674.SettingsRepository>(
-      () => _i955.SettingsRepositoryImpl(gh<_i140.SettingsRemoteDataSource>()),
-    );
-    gh.lazySingleton<_i425.AttendanceRemoteDataSource>(
-      () => _i425.AttendanceRemoteDataSourceImpl(gh<_i361.Dio>()),
     );
     gh.lazySingleton<_i356.GetStats>(
       () => _i356.GetStats(gh<_i804.StatsRepository>()),
@@ -257,24 +241,36 @@ extension GetItInjectableX on _i174.GetIt {
     gh.lazySingleton<_i868.SaveCourse>(
       () => _i868.SaveCourse(gh<_i1065.CourseRepository>()),
     );
+    gh.factory<_i367.AttendanceBloc>(
+      () => _i367.AttendanceBloc(gh<_i477.AttendanceRepository>()),
+    );
     gh.lazySingleton<_i32.UserRepository>(
       () => _i747.UserRepositoryImpl(gh<_i898.UserRemoteDataSource>()),
     );
     gh.factory<_i981.StatsBloc>(() => _i981.StatsBloc(gh<_i356.GetStats>()));
-    gh.lazySingleton<_i819.CheckServerHealth>(
-      () => _i819.CheckServerHealth(gh<_i674.SettingsRepository>()),
+    gh.factory<_i461.GetQrPayload>(
+      () => _i461.GetQrPayload(gh<_i477.QrRepository>()),
     );
-    gh.lazySingleton<_i342.ResetAttendance>(
-      () => _i342.ResetAttendance(gh<_i674.SettingsRepository>()),
+    gh.lazySingleton<_i115.ScheduleRemoteDataSource>(
+      () => _i115.ScheduleRemoteDataSourceImpl(gh<_i667.DioClient>()),
+    );
+    gh.lazySingleton<_i161.AuthRemoteDataSource>(
+      () => _i161.AuthRemoteDataSourceImpl(gh<_i667.DioClient>()),
     );
     gh.lazySingleton<_i939.ReportRepository>(
       () => _i246.ReportRepositoryImpl(gh<_i995.ReportRemoteDataSource>()),
     );
+    gh.lazySingleton<_i894.ProfileRepository>(
+      () => _i334.ProfileRepositoryImpl(gh<_i327.ProfileRemoteDataSource>()),
+    );
+    gh.lazySingleton<_i965.GetProfileUseCase>(
+      () => _i965.GetProfileUseCase(gh<_i894.ProfileRepository>()),
+    );
+    gh.lazySingleton<_i478.UpdateProfileUseCase>(
+      () => _i478.UpdateProfileUseCase(gh<_i894.ProfileRepository>()),
+    );
     gh.lazySingleton<_i370.GetSessionDetailsUseCase>(
       () => _i370.GetSessionDetailsUseCase(gh<_i94.SessionDetailRepository>()),
-    );
-    gh.lazySingleton<_i477.QrRepository>(
-      () => _i719.QrRepositoryImpl(gh<_i425.AttendanceRemoteDataSource>()),
     );
     gh.factory<_i33.SessionDetailBloc>(
       () => _i33.SessionDetailBloc(
@@ -282,11 +278,7 @@ extension GetItInjectableX on _i174.GetIt {
         gh<_i788.ExportSessionPdfUsecase>(),
       ),
     );
-    gh.lazySingleton<_i477.AttendanceRepository>(
-      () => _i719.AttendanceRepositoryImpl(
-        gh<_i425.AttendanceRemoteDataSource>(),
-      ),
-    );
+    gh.factory<_i726.QrBloc>(() => _i726.QrBloc(gh<_i461.GetQrPayload>()));
     gh.factory<_i597.CourseBloc>(
       () => _i597.CourseBloc(
         gh<_i640.GetCourses>(),
@@ -296,18 +288,6 @@ extension GetItInjectableX on _i174.GetIt {
     );
     gh.lazySingleton<_i736.ScheduleRepository>(
       () => _i688.ScheduleRepositoryImpl(gh<_i115.ScheduleRemoteDataSource>()),
-    );
-    gh.lazySingleton<_i788.ChangePasswordUseCase>(
-      () => _i788.ChangePasswordUseCase(gh<_i787.AuthRepository>()),
-    );
-    gh.lazySingleton<_i52.CheckAuthStatusUseCase>(
-      () => _i52.CheckAuthStatusUseCase(gh<_i787.AuthRepository>()),
-    );
-    gh.lazySingleton<_i188.LoginUseCase>(
-      () => _i188.LoginUseCase(gh<_i787.AuthRepository>()),
-    );
-    gh.lazySingleton<_i48.LogoutUseCase>(
-      () => _i48.LogoutUseCase(gh<_i787.AuthRepository>()),
     );
     gh.lazySingleton<_i859.ExportCsv>(
       () => _i859.ExportCsv(gh<_i939.ReportRepository>()),
@@ -330,6 +310,12 @@ extension GetItInjectableX on _i174.GetIt {
     gh.lazySingleton<_i713.MarkNotificationAsRead>(
       () => _i713.MarkNotificationAsRead(gh<_i367.NotificationRepository>()),
     );
+    gh.factory<_i133.ProfileBloc>(
+      () => _i133.ProfileBloc(
+        gh<_i965.GetProfileUseCase>(),
+        gh<_i478.UpdateProfileUseCase>(),
+      ),
+    );
     gh.lazySingleton<_i712.GetUsers>(
       () => _i712.GetUsers(gh<_i32.UserRepository>()),
     );
@@ -339,11 +325,14 @@ extension GetItInjectableX on _i174.GetIt {
     gh.lazySingleton<_i524.ToggleUser>(
       () => _i524.ToggleUser(gh<_i32.UserRepository>()),
     );
-    gh.factory<_i573.SettingsCubit>(
-      () => _i573.SettingsCubit(
-        gh<_i819.CheckServerHealth>(),
-        gh<_i342.ResetAttendance>(),
+    gh.lazySingleton<_i787.AuthRepository>(
+      () => _i153.AuthRepositoryImpl(
+        gh<_i161.AuthRemoteDataSource>(),
+        gh<_i992.AuthLocalDataSource>(),
       ),
+    );
+    gh.lazySingleton<_i674.SettingsRepository>(
+      () => _i955.SettingsRepositoryImpl(gh<_i140.SettingsRemoteDataSource>()),
     );
     gh.factory<_i826.ReportBloc>(
       () => _i826.ReportBloc(
@@ -359,9 +348,6 @@ extension GetItInjectableX on _i174.GetIt {
         gh<_i733.SaveUser>(),
       ),
     );
-    gh.factory<_i367.AttendanceBloc>(
-      () => _i367.AttendanceBloc(gh<_i477.AttendanceRepository>()),
-    );
     gh.factory<_i159.NotificationBloc>(
       () => _i159.NotificationBloc(
         gh<_i163.GetNotifications>(),
@@ -370,10 +356,37 @@ extension GetItInjectableX on _i174.GetIt {
         gh<_i826.DeleteNotification>(),
       ),
     );
+    gh.lazySingleton<_i819.CheckServerHealth>(
+      () => _i819.CheckServerHealth(gh<_i674.SettingsRepository>()),
+    );
+    gh.lazySingleton<_i342.ResetAttendance>(
+      () => _i342.ResetAttendance(gh<_i674.SettingsRepository>()),
+    );
     gh.lazySingleton<_i375.GetMyCourses>(
       () => _i375.GetMyCourses(gh<_i736.ScheduleRepository>()),
     );
-    gh.factory<_i85.AuthBloc>(
+    gh.lazySingleton<_i788.ChangePasswordUseCase>(
+      () => _i788.ChangePasswordUseCase(gh<_i787.AuthRepository>()),
+    );
+    gh.lazySingleton<_i52.CheckAuthStatusUseCase>(
+      () => _i52.CheckAuthStatusUseCase(gh<_i787.AuthRepository>()),
+    );
+    gh.lazySingleton<_i188.LoginUseCase>(
+      () => _i188.LoginUseCase(gh<_i787.AuthRepository>()),
+    );
+    gh.lazySingleton<_i48.LogoutUseCase>(
+      () => _i48.LogoutUseCase(gh<_i787.AuthRepository>()),
+    );
+    gh.factory<_i573.SettingsCubit>(
+      () => _i573.SettingsCubit(
+        gh<_i819.CheckServerHealth>(),
+        gh<_i342.ResetAttendance>(),
+      ),
+    );
+    gh.factory<_i112.ScheduleBloc>(
+      () => _i112.ScheduleBloc(gh<_i375.GetMyCourses>()),
+    );
+    gh.lazySingleton<_i85.AuthBloc>(
       () => _i85.AuthBloc(
         gh<_i188.LoginUseCase>(),
         gh<_i52.CheckAuthStatusUseCase>(),
@@ -381,9 +394,9 @@ extension GetItInjectableX on _i174.GetIt {
         gh<_i48.LogoutUseCase>(),
       ),
     );
-    gh.factory<_i112.ScheduleBloc>(
-      () => _i112.ScheduleBloc(gh<_i375.GetMyCourses>()),
-    );
+    gh.singleton<_i81.AppRouter>(() => _i81.AppRouter(gh<_i85.AuthBloc>()));
     return this;
   }
 }
+
+class _$RegisterModule extends _i291.RegisterModule {}

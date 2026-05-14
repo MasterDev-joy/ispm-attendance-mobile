@@ -17,7 +17,7 @@ abstract class ReportRemoteDataSource {
 @LazySingleton(as: ReportRemoteDataSource)
 class ReportRemoteDataSourceImpl implements ReportRemoteDataSource {
   final Dio _dio;
-  ReportRemoteDataSourceImpl(this._dio);
+  ReportRemoteDataSourceImpl(DioClient dioClient) : _dio = dioClient.dio;
 
   @override
   Future<GlobalReportModel> fetchReports({required String period}) async {

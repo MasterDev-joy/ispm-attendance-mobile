@@ -158,10 +158,6 @@ class _ChangePasswordPageState extends State<ChangePasswordPage>
                 ),
               );
             },
-            // Mot de passe changé → accueil
-            authenticated: (_) {
-              Navigator.of(context).pushReplacementNamed('/home');
-            },
           );
         },
         builder: (context, state) {

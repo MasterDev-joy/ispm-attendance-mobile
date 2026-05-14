@@ -93,7 +93,6 @@ class _ProfileViewState extends State<_ProfileView>
       context,
       onConfirm: () {
         context.read<AuthBloc>().add(AuthEvent.logoutRequested());
-        context.go('/login'); // ✅ GoRouter
       },
     );
   }

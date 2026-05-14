@@ -4,6 +4,7 @@ import 'package:injectable/injectable.dart';
 import '../../../../../core/error/failures.dart';
 import '../repositories/attendance_repository.dart';
 
+@lazySingleton
 class GetQrPayload {
   final QrRepository _repository;
 
